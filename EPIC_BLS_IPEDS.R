@@ -1,0 +1,228 @@
+===## app.R ##
+#  ******** This program creates the RDS files for the EPIC app ******************************
+##Self Directed EPIC 1/07/2020
+library(shiny)
+library(shinydashboard)
+library(shinydashboardPlus)
+library(shinyWidgets)
+library(markdown)
+library(tidyverse)
+library(DT)
+library(tools)
+library(shinyjs)
+library(sodium)
+library(shinyalert)
+library(RSQLite)
+library(RODBC)
+library(shinyjqui)
+library(shinymanager)
+library(gmailr)
+library(shinyBS)
+library(readxl)
+
+# ********************************* Tools for use as needed *********************
+#unused <- as.integer(c(1:55))
+#rename(iris, petal_length = Petal.Length)
+#UnitCIP <- distinct(dataSetName2, .keep_all = FALSE)
+#saveRDS(CIP_Data, "CIPS.rds")  
+#OCCFcst <- OCCFcst[, 4:9] <- round(OCCFcst[, 4:9], digits = 1)
+#OCCFcst <- OCCFcst %>% rename(new_name = old_name)
+#OCCFcst <- rename(OCCFcst, new_name = old_name)
+#cipcode_all <- cipcode_all %>% filter(CIPCODE %notin% (unused))
+#schools_columns <- readRDS("c_n_school.rds")
+#filter(starwars, hair_color == "none" & eye_color == "black")
+#wages <- filter(wages, data_type_code.y == "12" & seasonal.y == "S")
+#CIP_Data <- CIP_Data3[,c("CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]
+
+
+# ***** Create Channel to IPEDS Access file *************
+channel <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/IPEDS201819.accdb")
+
+
+# ************************* CREATE CIP DATA FILE ***************************************************
+# import data table c2018_a (which includes completion information by institution) from IPEDS access database
+CIP_Data1 <- sqlQuery(channel, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT FROM C2018_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
+CIP_Data1$UNITID <- as.character(CIP_Data1$UNITID)
+CIP_Data1$AWLEVEL <- as.character(CIP_Data1$AWLEVEL)    # Change AWLEVEL from integer to character
+
+# Add AWLEVEL codes "01" and "05" to the CIP_Data file - these map to "1" and "2" Entry_Codes.
+#AWLADD <- c("", "", "05","")
+#CIP_Data1 <- rbind(CIP_Data1, AWLADD)
+#AWLADD <- c("", "", "01","")
+#CIP_Data1 <- rbind(CIP_Data1, AWLADD)
+
+#Read degree crosswalk table between school degress and occupational entry degrees
+DegreeCrosswalk <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/DegreeCrosswalk.xlsx")
+
+#create updated list of valid school degree codes
+DegreeCodes <- DegreeCrosswalk$Degree_Code
+
+#delete summary school degree codes (duplicates) from main school completion dataset
+CIP_Data2 <- CIP_Data1 %>% filter(AWLEVEL %in% DegreeCodes)
+
+#Add Years to dataSetName3 file by AWLEVEL
+CIP_Data3 <- merge(x=CIP_Data2, y=DegreeCrosswalk, by="AWLEVEL")
+CIP_Data <- CIP_Data3[,c("CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]       #Designate columns to keep
+saveRDS(CIP_Data, "CIPS.rds")                                                      #Need to add TEXT for codes
+
+
+# ******************************** CREATE SCHOOL FILE **********************************
+School1 <- sqlQuery(channel, "SELECT UNITID, INSTNM, STABBR, WEBADDR FROM HD2018", as.is = TRUE ) 
+School2 <- sqlQuery(channel, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
+School3 <- sqlQuery(channel, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
+School4 <- sqlQuery(channel, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
+School5 <- sqlQuery(channel, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_18", as.is = TRUE ) 
+School6 <- sqlQuery(channel, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1", as.is = TRUE )
+
+# Create Graduation Rate Factor for each school
+
+# Normalize grad rates for 4 (LA) and 2 (L4) year programs
+School5 <- School5 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+School5$pc75 <- 0
+School5$pc100 <- (School5$BAGR100+School5$L4GR100)/(School5$BAGR200+School5$L4GR200)
+School5$pc150 <- (School5$BAGR150+School5$L4GR150)/(School5$BAGR200+School5$L4GR200)
+School5$pc200 <- (School5$BAGR200+School5$L4GR200)/(School5$BAGR200+School5$L4GR200)
+School5$Factor  <- if_else(School5$pc100 >= .5, ((.5-School5$pc75)/(School5$pc100-School5$pc75)*(1)+3)/4,
+                           if_else(School5$pc150 >= .5, ((.5-School5$pc100)/(School5$pc150-School5$pc100)*(2)+4)/4,
+                                   if_else(School5$pc200 >= .5, ((.5-School5$pc150)/(School5$pc200-School5$pc150)*(2)+4)/4,0)))
+
+#combine school data into a single file and save as an RDS file
+SchoolData <- merge(x=School1, y=School2, by="UNITID", all = TRUE)
+SchoolData <- merge(x=SchoolData, y=School3, by="UNITID", all = TRUE)
+SchoolData <- merge(x=SchoolData, y=School4, by="UNITID", all = TRUE)
+SchoolData <- merge(x=SchoolData, y=School5, by="UNITID", all = TRUE)
+SchoolData <- merge(x=SchoolData, y=School6, by="UNITID", all = TRUE)
+SchoolData <- SchoolData %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
+SchoolData <- SchoolData %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+
+# Calculate total cost for in state and out of state undergraduate students
+SchoolData$TotCstInHi <- SchoolData$TUITION2 + SchoolData$FEE2 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+  SchoolData$BOARDAMT + SchoolData$RMBRDAMT
+SchoolData$TotCstOutHi <- SchoolData$TUITION3 + SchoolData$FEE3 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+  SchoolData$BOARDAMT + SchoolData$RMBRDAMT
+SchoolData$TotCstInLo <- SchoolData$TotCstInHi - SchoolData$IGRNT_A
+SchoolData$TotCstOutLo <- SchoolData$TotCstOutHi - SchoolData$IGRNT_A
+SchoolData$UNITID <- as.character(SchoolData$UNITID)  # Make UNITID a character string
+
+saveRDS(SchoolData, "Schools.rds")
+
+
+# ****************************** CREATE OCCUPATIONS OCC_Detail FILE **********************************
+#combine occupation data into a single file, name and set numeric columns, and save as an RDS file
+#Load OCC entry data table and keep only three columns to get Entry_Degree by OCCCODE
+#combine occupation data into a single file, name and set numeric columns, and save as an RDS file
+OCCFcst1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/occupation.xlsx", sheet = "Table 1.7", skip = 3,
+                       col_names = c("OCCNAME", "OCCCODE", "OCCTYPE", "Emply2018", "Emply2028", 
+                                    "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
+                                    "Entry_Degree", "Experience", "OJT"),
+                       col_types = c("text", "text", "text", "numeric", "numeric", "numeric", 
+                                    "numeric", "numeric", "numeric", "numeric", "text", "text", "text"))
+OCCFcst2 <- OCCFcst1 %>% filter(OCCTYPE %in% "Line item")
+OCCFcst3 <- merge(x = OCCFcst2, y = DegreeCrosswalk, by="Entry_Degree", all = FALSE)  # add "Entry_Code" to dataframe
+#OCCFcst4 <- OCCFcst3[ -c(14,15,16,18,19)]    # delete unused columns
+OCCFcst3$Entry_Code <- as.character(OCCFcst3$Entry_Code)  #Change Entry_Code from Integer to Character
+OCCFcst <- unique(OCCFcst3)                 # delete duplicates
+
+
+
+# Load and clean quintile data
+OCCQint1 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/all_data_M_2019.xlsx", sheet = "All May 2019 Data",
+                       col_names = TRUE,
+                       #                      c("area", "area_title", "area_type", "naics", "naics_title", "i_group", "own_code", "occ_code", "occ_title", "o_group", 
+                       #                                    "tot_emp", "emp_prse", "jobs_1000", "loc_quotient", "pct_total", "h_mean", "a_mean", "mean_prse", 
+                       #                                    "h_pct10", "h_pct25", "h_pct50", "h_pct75", "h_pct90", "X10p", "X25p", "X50p", "X75p", "X90p", 
+                       #                                    "annual", "hourly"),
+                       col_types = c("text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "numeric", "numeric", "numeric", 
+                                     "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", 
+                                     "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "text", "text"))
+
+#Filter file by area, naics, and o_group
+OCCQint2 <- OCCQint1 %>% filter(area_title %in% "U.S.")
+OCCQint3 <- OCCQint2 %>% filter(naics %in% "000000")
+OCCQint4 <- OCCQint3 %>% filter(o_group %in% "detailed")
+OCCQint5 <- OCCQint4[ -c(1,2,3,4,5,6,7,12,13,14,15,18)]  # removed unused columns
+OCCQint <- rename(OCCQint5, OCCCODE = occ_code)  # rename occ_code to OCCCODE in order to merge with OCCFcst
+
+OCC_Detail1 <- merge(x=OCCQint, y=OCCFcst, by="OCCCODE", all = FALSE)  #Merge OCC forecast & OCC salary data
+OCC_Detail2 <- OCC_Detail1 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCC_Detail3 <- OCC_Detail2 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCC_Detail <- OCC_Detail3 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
+
+# Fill in missing salary data using average difference between qintiles for "national "U.S." dataset NAICS "000000"
+# The source of this data is "all_data_M_2019.xlsx", sheet = "All May 2019 Data"
+#a_10pct a_25pct a_50pct a_75pct a_90pct
+# 33,582	41,833	53,479	67,908	82,019
+#          1.246	 1.278	 1.270	 1.208
+
+OCC_Detail$X10p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct10 * 2080, if_else(OCC_Detail$annual == "TRUE", OCC_Detail$a_pct10, OCC_Detail$a_pct10))
+OCC_Detail$X25p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct25 * 2080, if_else(OCC_Detail$a_pct25 == 0, OCC_Detail$X10p * 1.246,OCC_Detail$a_pct25))
+OCC_Detail$X50p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_median * 2080, if_else(OCC_Detail$a_median == 0, OCC_Detail$X25p * 1.278,OCC_Detail$a_median))
+OCC_Detail$X75p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct75 * 2080, if_else(OCC_Detail$a_pct75 == 0, OCC_Detail$X50p * 1.27,OCC_Detail$a_pct75))
+OCC_Detail$X90p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct90 * 2080, if_else(OCC_Detail$a_pct90 == 0, OCC_Detail$X75p * 1.208,OCC_Detail$a_pct90))
+OCC_Detail$X17p <- (OCC_Detail$X10p + OCC_Detail$X25p)/2
+OCC_Detail$X82p <- (OCC_Detail$X75p + OCC_Detail$X90p)/2
+
+# Generate total factors for salary forecast over time: Low, Med, Hi refers to competency level. Late is at retirement age
+# 
+OCC_Detail$LowLate <- OCC_Detail$X10p * 2.51872923999183
+OCC_Detail$MedLate <- OCC_Detail$X17p * 2.51872923999183
+OCC_Detail$HiLate <- OCC_Detail$X25p * 2.51872923999183
+
+# Generate annualized factors for salary increases over 50 years
+OCC_Detail$LowOccF <- (OCC_Detail$X75p/OCC_Detail$LowLate)^(1/50)
+OCC_Detail$MedOccF <- (OCC_Detail$X82p/OCC_Detail$MedLate)^(1/50)
+OCC_Detail$HiOccF <- (OCC_Detail$X90p/OCC_Detail$HiLate)^(1/50)
+
+# set column headings for the OCC_Detail file
+OCC_Detail <- OCC_Detail[,c ("occ_title", "OCCCODE", "OCCTYPE", "Emply2018", "Emply2028", 
+                              "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
+                              "Entry_Code", "Entry_Degree", "Experience", 
+                              "OJT", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
+                              "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF")]
+
+# save as RDS file
+saveRDS(OCC_Detail, "Occupations.rds")
+
+# ********************************* CREATE BACKBONE FILE *****************************************
+
+#Read CIP OCC crosswalk file, keep character format for codes, includes "no match" information
+OCC_CIP_CW <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/CIP2020_SOC2018_Crosswalk.xlsx", 
+                         sheet = "CIP-SOC",col_names = c("CIPCODE", "CIPNAME", "OCCCODE", "OCCNAME"))
+
+# Merge CIP_Data file with the OCC <> CIP crosswalk file
+Backbone1 <- merge(x = CIP_Data, y = OCC_CIP_CW, by="CIPCODE", all = TRUE)
+Backbone2 <- merge(x = Backbone1, y = OCC_Detail, by="OCCCODE", all = TRUE)  # Merge to Add Entry_Code field
+Backbone3 <- Backbone2[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE", 
+                           "Entry_Code")]  # select fields to keep
+# Set AWLEVEL for Entry_Degree of "No Ed" or "HS" combined with CIPCODE of "No MATC" to AWLEVEL of "01" or "05".
+Backbone3$AWLEVEL <- if_else(Backbone3$CIPCODE == "NO MATC",
+                             if_else(Backbone3$Entry_Code == "1","01",
+                                     if_else(Backbone3$Entry_Code == "2","05",
+                                             Backbone3$AWLEVEL)),Backbone3$AWLEVEL) 
+
+Backbone <- unique(Backbone3)
+
+# Save RDS file
+saveRDS(Backbone, "Backbone.rds")
+
+
+# *********************** Create Alternate Titles file *********************************************************************************
+AltTitle <- read_excel("Alternate Titles.xlsx", col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
+# Trim OCCCODE to 7 Digits from 10 digits
+AltTitle$OCCCODE <- strtrim(AltTitle$OCCCODE, 7)  
+#Retain only OCCCODE and AltTitle columns
+AltTitle <- AltTitle[ -c(2,4:5)]
+# save the file as an RDS file
+saveRDS(AltTitle, "AltTitle.rds")
+
+
+#do not forget this, otherwise you lock access database from editing.
+close(channel) 
+
+# Diagnotic Tables
+# Schools
+SchoolDataDetail <- SchoolData %>% full_join(CIP_Data, by = "UNITID")
+SchoolDataDetail <- SchoolDataDetail %>% full_join(OCC_CIP_CW, by = "CIPCODE")
+SchoolDataDetail <- SchoolDataDetail[ -c(41,42,43,45,46)]
+SchoolDataDetail <- unique(SchoolDataDetail)
+write.csv(SchoolDataDetail, "c:/Users/lccha/OneDrive/NVS EPIC/schooldata.csv")
