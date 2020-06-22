@@ -22,7 +22,7 @@ library(readxl)
 
 # Tools ********************************* Tools for use as needed ********************* ----
 #unused <- as.integer(c(1:55))
-#rename(iris, petal_length = Petal.Length)
+#rename(iris, petal_length = Petal.Length)  # Rename column headings
 #UnitCIP <- distinct(dataSetName2, .keep_all = FALSE)
 #saveRDS(CIP_Data, "CIPS.rds")  
 #OCCFcst <- OCCFcst[, 4:9] <- round(OCCFcst[, 4:9], digits = 1)
@@ -50,7 +50,7 @@ library(readxl)
 channel <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/IPEDS201819.accdb")
 
 
-# CIP Data ************************* CREATE CIP DATA FILE *************************************************** ----
+# CIP Data ************************* CREATE CIP DATA FILE **************************************** ----
 # import data table c2018_a (which includes completion information by institution) from IPEDS access database
 CIP_Data0 <- sqlQuery(channel, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT, MAJORNUM FROM C2018_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
 Major1 <- CIP_Data0 %>% filter(MAJORNUM ==1)  #select degrees awarded as first or primary major
@@ -130,7 +130,7 @@ SchoolData <- rbind(SchoolData, SchoolNull)
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Schools.rds")
 
 
-# Occupations.rds ****************************** CREATE OCCUPATIONS OCC_Detail FILE ********************************** ----
+# Occupations.rds ********************** CREATE OCCUPATIONS OCC_Detail FILE ************************* ----
 #combine occupation data into a single file, name and set numeric columns, and save as an RDS file
 #Load OCC entry data table and keep only three columns to get Entry_Degree by OCCCODE
 #combine occupation data into a single file, name and set numeric columns, and save as an RDS file
@@ -229,7 +229,7 @@ OCC_Detail$HiOccF <- sub("NaN",0,OCC_Detail$HiOccF)
 # save as RDS file
 saveRDS(OCC_Detail, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Occupations.rds")
 
-# Backbone.rds ********************************* CREATE BACKBONE FILE ***************************************** ----
+# Backbone.rds ******************* CREATE BACKBONE FILE ************************************ ----
 
 #Read CIP OCC crosswalk file, keep character format for codes, includes "no match" information
 OCC_CIP_CW <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/CIP2010xSOC2018.xlsx",
@@ -271,7 +271,7 @@ saveRDS(Backbone, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/
 Backbone$Index <- rownames(Backbone) #Create index using Rownames will return rownumbers present in Dataset,df=DataFrame name.
 Backbone$Index = as.numeric(as.character(Backbone$Index)) # change index from text to number
 
-# AltTitle.rds *********************** Create Alternate Titles file ********************************************************************************* ----
+# AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
 AltTitle <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Alternate Titles.xlsx", col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
 # Trim OCCCODE to 7 Digits from 10 digits
 AltTitle$OCCCODE <- strtrim(AltTitle$OCCCODE, 7)  
