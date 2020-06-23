@@ -124,7 +124,7 @@ SchoolData <- SchoolData %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # ch
 SchoolData <- SchoolData %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull <- c("No Match", "No Match", 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+SchoolNull <- c("No Match", "No Match","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
 SchoolData <- rbind(SchoolData, SchoolNull)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Schools.rds")
