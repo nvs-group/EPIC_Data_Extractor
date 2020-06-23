@@ -120,12 +120,12 @@ SchoolData$TotCstInLo <- SchoolData$TotCstInHi - SchoolData$IGRNT_A
 SchoolData$TotCstOutLo <- SchoolData$TotCstOutHi - SchoolData$IGRNT_A
 SchoolData$UNITID <- as.character(SchoolData$UNITID)  # Make UNITID a character string
 
-SchoolData <- SchoolData %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
-SchoolData <- SchoolData %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+SchoolData6 <- SchoolData %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
+SchoolData7 <- SchoolData6 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull <- c("No Match", "No Match","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
-SchoolData <- rbind(SchoolData, SchoolNull)
+SchoolNull1 <- list("No Match", "No Match","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+SchoolData <- rbind(SchoolData7, SchoolNull1)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Schools.rds")
 
@@ -210,16 +210,16 @@ OCC_Detail$MedOccF <- (OCC_Detail$X82p/OCC_Detail$MedLate)^(1/50)
 OCC_Detail$HiOccF <- (OCC_Detail$X90p/OCC_Detail$HiLate)^(1/50)
 
 # set column headings for the OCC_Detail file
-OCC_Detail <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2018", "Emply2028", 
+OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2018", "Emply2028", 
                               "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                               "Entry_Code", "Entry_Degree", "Experience", 
                               "OJT", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
                               "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF")]
-OCC_Detail <- unique(OCC_Detail)
+OCC_Detail8 <- unique(OCC_Detail7)
 
 # Create Occupation "No Match" record
-OCCNull <- c("No Match", "No Match", 0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
-OCC_Detail <- rbind(OCC_Detail, OCCNull)
+OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"","","","",0,0,0,0,0,0,0,0,0,0,0,0,0) 
+OCC_Detail <- rbind(OCC_Detail8, OCCNull1)
 
 #Replace "NaN" elements with 0
 OCC_Detail$LowOccF <- sub("NaN",0,OCC_Detail$LowOccF)
@@ -243,8 +243,8 @@ OCC_CIP_CW <- OCC_CIP_CW[ -c(1,2,4,5,6,7)]  # removed unused columns
 
 
 # Merge CIP_Data file with the OCC <> CIP crosswalk file
-Backbone1 <- merge(x = OCC_Detail, y = OCC_CIP_CW, by="OCCCODE", all = FALSE)
-Backbone1 <- merge(x = Backbone1, y =DegreeCrosswalk, by="Entry_Code", all = FALSE)
+Backbone1 <- merge(x = OCC_Detail, y = OCC_CIP_CW, by="OCCCODE", all = TRUE)
+Backbone1 <- merge(x = Backbone1, y =DegreeCrosswalk, by="Entry_Code", all = TRUE)
 
 Backbone2 <- merge(x = CIP_Data, y = OCC_CIP_CW, by="CIPCODE", all = TRUE)  # Merge to Add Entry_Code field
 Backbone3 <- merge(x = Backbone1, y = Backbone2, by=c("CIPCODE","OCCCODE","AWLEVEL"), all = TRUE)  # Merge to Add Entry_Code field
@@ -259,11 +259,14 @@ Backbone4 <- Backbone3[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE")
 #                                             Backbone3$AWLEVEL)),Backbone3$AWLEVEL) 
 
 Backbone5 <- unique(Backbone4)
-Backbone <- Backbone5[order(Backbone5$UNITID, Backbone5$CIPCODE, Backbone5$AWLEVEL, Backbone5$OCCCODE),
+Backbone6 <- Backbone5[order(Backbone5$UNITID, Backbone5$CIPCODE, Backbone5$AWLEVEL, Backbone5$OCCCODE),
                       c(1,2,3,4,5)] #sort columns
 #row.names(Backbone) <- 1:nrow(Backbone)   #renumber the rows sequentially
-Backbone <- Backbone %>% mutate_if(is.character, ~replace(., is.na(.), "No Match")) # change "na" to "0"
-Backbone <- Backbone %>% mutate_if(is.double, ~replace(., is.na(.), "No Match")) # change "na" to "0"
+Backbone7 <- Backbone6 %>% mutate_if(is.character, ~replace(., is.na(.), "No Match")) # change "na" to "0"
+Backbone <- Backbone7 %>% mutate_if(is.numeric, ~replace(., is.na(.),0)) # change "na" to "0"
+
+# Change CTOTALT column from character to number data type
+#Backbone$CTOTALT = as.character(as.numeric(Backbone$CTOTALT)) #changes character column to numberic
 
 # Save RDS file
 saveRDS(Backbone, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Backbone.rds")
