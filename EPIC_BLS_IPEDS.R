@@ -89,13 +89,15 @@ School1 <- sqlQuery(channel, "SELECT UNITID, INSTNM, STABBR, WEBADDR FROM HD2018
 School2 <- sqlQuery(channel, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
 School3 <- sqlQuery(channel, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
 School4 <- sqlQuery(channel, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
+School4 <- School4 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 School5 <- sqlQuery(channel, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_18", as.is = TRUE ) 
+School5 <- School5 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 School6 <- sqlQuery(channel, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1", as.is = TRUE )
+School6 <- School6 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 # Create Graduation Rate Factor for each school
 
 # Normalize grad rates for 4 (LA) and 2 (L4) year programs
-School5 <- School5 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 School5$pc75 <- 0
 School5$pc100 <- (School5$BAGR100+School5$L4GR100)/(School5$BAGR200+School5$L4GR200)
 School5$pc150 <- (School5$BAGR150+School5$L4GR150)/(School5$BAGR200+School5$L4GR200)
@@ -110,6 +112,7 @@ SchoolData <- merge(x=SchoolData, y=School3, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School4, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School5, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School6, by="UNITID", all = TRUE)
+SchoolData <- SchoolData %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 # Calculate total cost for in state and out of state undergraduate students
 SchoolData$TotCstInHi <- SchoolData$TUITION2 + SchoolData$FEE2 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
@@ -120,12 +123,12 @@ SchoolData$TotCstInLo <- SchoolData$TotCstInHi - SchoolData$IGRNT_A
 SchoolData$TotCstOutLo <- SchoolData$TotCstOutHi - SchoolData$IGRNT_A
 SchoolData$UNITID <- as.character(SchoolData$UNITID)  # Make UNITID a character string
 
-SchoolData6 <- SchoolData %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
-SchoolData7 <- SchoolData6 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+SchoolData <- SchoolData %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
+SchoolData <- SchoolData %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
 SchoolNull1 <- list("No Match", "No Match","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
-SchoolData <- rbind(SchoolData7, SchoolNull1)
+SchoolData <- rbind(SchoolData, SchoolNull1)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Schools.rds")
 
@@ -212,7 +215,7 @@ OCC_Detail$HiOccF <- (OCC_Detail$X90p/OCC_Detail$HiLate)^(1/50)
 # set column headings for the OCC_Detail file
 OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2018", "Emply2028", 
                               "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
-                              "Entry_Code", "Entry_Degree", "Experience", 
+                              "AWLEVEL", "LEVELName", "Experience", 
                               "OJT", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
                               "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF")]
 OCC_Detail8 <- unique(OCC_Detail7)
