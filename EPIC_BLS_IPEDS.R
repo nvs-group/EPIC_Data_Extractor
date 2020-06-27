@@ -44,6 +44,8 @@ library(readxl)
 #   OCC_CIP_CW$post <- substr(OCC_CIP_CW$OCCCODE_OLD, 3, 6)
 #   OCC_CIP_CW$OCCCODE <- paste0(OCC_CIP_CW$pre, "-", OCC_CIP_CW$post)
 #df$Country <- sub(" - USA","",df$Country) #replace " - USA" with ""
+#data_price$nbrSims[is.na(data_price$nbrSims)] <- "Single" #replace "NA" with the text "Single"
+#OCC_Detail1$OCCNAME <- ifelse(is.na(OCC_Detail1$OCCNAME), OCC_Detail1$occ_title, OCC_Detail1$OCCNAME)     # combine OCCNAME and occ_title
 
 
 # IPEDS Access***** Create Channel to IPEDS Access file ************* ----
@@ -145,17 +147,16 @@ OCCFcst1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/
                                     "numeric", "numeric", "numeric", "numeric", "text", "text", "text"))
 OCCCODE1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/soc_2010_to_2018_crosswalk.xlsx", 
                        skip = 8)
-OCCCODE2 <- rename(OCCCODE1, "OCCNAME" = "soc_2010_to_2018_crosswalk")  # rename "soc_2010_to_2018_crosswalk" to "OCCNAME" in order to merge with OCCFcst
-OCCCODE3 <- rename(OCCCODE2, "OCCCODE" = "2018 SOC Code")  # rename OCCNAME to occ_title in order to merge with OCCFcst
-
-OCCFcst2 <- left_join(OCCCODE3, OCCFcst1, by = "2010 SOC Code", all = TRUE)
-#OCCFcst2 <- merge(OCCCODE1, OCCFcst1, by.x = "2018 SOC Code", by.y = "OCCCODE", all = FALSE)
+#OCCFcst2 <- left_join(OCCCODE3, OCCFcst1, by = "OCCCode", all = TRUE)
+OCCFcst2 <- merge(OCCCODE1, OCCFcst1, by.x = "2018 SOC Code", by.y = "2010 SOC Code", all = FALSE)
 OCCFcst2 <- OCCFcst2 %>% filter(OCCTYPE %in% "Line item") #delete summary occupations, etc
-OCCFcst3 <- OCCFcst2[ -c(1,2,5,6)]    # delete unused columns
-OCCFcst3 <- rename(OCCFcst3, OCCNAME = OCCNAME.x)  # rename occ_code to OCCCODE in order to merge with OCCFcst
+OCCFcst3 <- OCCFcst2[ -c(2,3,5,6)]    # delete unused columns
+OCCFcst3 <- rename(OCCFcst3, "OCCNAME" = "soc_2010_to_2018_crosswalk")  # rename "soc_2010_to_2018_crosswalk" to "OCCNAME" in order to merge with OCCFcst
+OCCFcst3 <- rename(OCCFcst3, "OCCCODE" = "2018 SOC Code")  # rename OCCNAME to occ_title in order to merge with OCCFcst
 
-OCCFcst4 <- merge(x = OCCFcst3, y = DegreeCrosswalk, by="Entry_Degree", all = TRUE)  # add "Entry_Code" to dataframe
+OCCFcst4 <- merge(x = OCCFcst3, y = DegreeCrosswalk, by="Entry_Degree", all = FALSE)  # add "Entry_Code" to dataframe
 OCCFcst4$Entry_Code <- as.character(OCCFcst4$Entry_Code)  #Change Entry_Code from Integer to Character
+
 OCCFcst <- unique(OCCFcst4)                 # delete duplicates
 
 
@@ -178,11 +179,14 @@ OCCQint5 <- OCCQint4[ -c(1,2,3,4,5,6,7,12,13,14,15,18)]  # removed unused column
 OCCQint <- rename(OCCQint5, OCCCODE = occ_code)  # rename occ_code to OCCCODE in order to merge with OCCFcst
 
 OCC_Detail1 <- merge(x=OCCFcst, y=OCCQint, by="OCCCODE", all = TRUE)  #Merge OCC forecast & OCC salary data
-OCC_Detail2 <- left_join(OCCCODE3, OCC_Detail1, by = "OCCCODE", all = TRUE)
-OCC_Detail3 <- OCC_Detail2[ -c(1,2,6,20,21,22)]    # delete unused columns
+OCC_Detail1$OCCNAME <- ifelse(is.na(OCC_Detail1$OCCNAME), OCC_Detail1$occ_title, OCC_Detail1$OCCNAME)     # combine OCCNAME and occ_title
+OCCCODE1 <- rename(OCCCODE1, "OCCCODE" = "2018 SOC Code")  # rename OCCNAME to occ_title in order to merge with OCCFcst
+
+OCC_Detail2 <- left_join(x = OCCCODE1, y = OCC_Detail1, by.x = "2018 SOC Code", by.y = "OCCCODE", all = TRUE)
+OCC_Detail3 <- OCC_Detail2[ -c(1,2,6,20,21,22,23)]    # delete unused columns
 OCC_Detail4 <- OCC_Detail3 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
 OCC_Detail5 <- OCC_Detail4 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-OCC_Detail6 <- rename(OCC_Detail5, OCCNAME = OCCNAME.x)  # rename occ_title.y to OCCNAME in order to merge with OCCFcst
+OCC_Detail6 <- rename(OCC_Detail5, OCCNAME = "soc_2010_to_2018_crosswalk")  # rename occ_title.y to OCCNAME in order to merge with OCCFcst
 
 
 OCC_Detail <- OCC_Detail6 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
@@ -215,19 +219,22 @@ OCC_Detail$HiOccF <- (OCC_Detail$X90p/OCC_Detail$HiLate)^(1/50)
 # set column headings for the OCC_Detail file
 OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2018", "Emply2028", 
                               "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
-                              "AWLEVEL", "LEVELName", "Experience", 
+                              "Entry_Code", "Entry_Degree", "Experience", 
                               "OJT", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
                               "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF")]
 OCC_Detail8 <- unique(OCC_Detail7)
 
 # Create Occupation "No Match" record
 OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"","","","",0,0,0,0,0,0,0,0,0,0,0,0,0) 
-OCC_Detail <- rbind(OCC_Detail8, OCCNull1)
+OCC_Detail <- rbind(OCC_Detail8, OCCNull1, drop = FALSE)
 
 #Replace "NaN" elements with 0
-OCC_Detail$LowOccF <- sub("NaN",0,OCC_Detail$LowOccF)
-OCC_Detail$MedOccF <- sub("NaN",0,OCC_Detail$MedOccF)
-OCC_Detail$HiOccF <- sub("NaN",0,OCC_Detail$HiOccF)
+OCC_Detail$LowOccF <- sub("NaN",0,OCC_Detail$LowOccF)  #replace "NaN" with "0"
+OCC_Detail$LowOccF = as.numeric(as.character(OCC_Detail$LowOccF)) #make column a numeric
+OCC_Detail$MedOccF <- sub("NaN",0,OCC_Detail$MedOccF) #replace "NaN" with "0"
+OCC_Detail$MedOccF = as.numeric(as.character(OCC_Detail$MedOccF)) #make column a numeric
+OCC_Detail$HiOccF <- sub("NaN",0,OCC_Detail$HiOccF) #replace "NaN" with "0"
+OCC_Detail$HiOccF = as.numeric(as.character(OCC_Detail$HiOccF)) #make column a numeric
 
 # save as RDS file
 saveRDS(OCC_Detail, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Occupations.rds")
