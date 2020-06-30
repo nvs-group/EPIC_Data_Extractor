@@ -114,22 +114,25 @@ SchoolData <- merge(x=SchoolData, y=School3, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School4, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School5, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School6, by="UNITID", all = TRUE)
-SchoolData <- SchoolData %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 # Calculate total cost for in state and out of state undergraduate students
 SchoolData$TotCstInHi <- SchoolData$TUITION2 + SchoolData$FEE2 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
   SchoolData$BOARDAMT + SchoolData$RMBRDAMT
 SchoolData$TotCstOutHi <- SchoolData$TUITION3 + SchoolData$FEE3 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
   SchoolData$BOARDAMT + SchoolData$RMBRDAMT
-SchoolData$TotCstInLo <- SchoolData$TotCstInHi - SchoolData$IGRNT_A
-SchoolData$TotCstOutLo <- SchoolData$TotCstOutHi - SchoolData$IGRNT_A
+SchoolData$TotCstInLo <- ifelse(SchoolData$TotCstInHi == 0,0,SchoolData$TotCstInHi - SchoolData$IGRNT_A)
+SchoolData$TotCstOutLo <- ifelse(SchoolData$TotCstOutHi == 0,0,SchoolData$TotCstOutHi - SchoolData$IGRNT_A)
 SchoolData$UNITID <- as.character(SchoolData$UNITID)  # Make UNITID a character string
+SchoolData$GTotCstInHi <- SchoolData$TUITION6 + SchoolData$FEE6 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+  SchoolData$BOARDAMT + SchoolData$RMBRDAMT
+SchoolData$GTotCstOutHi <- SchoolData$TUITION7 + SchoolData$FEE7 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+  SchoolData$BOARDAMT + SchoolData$RMBRDAMT
 
-SchoolData <- SchoolData %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
-SchoolData <- SchoolData %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull1 <- list("No Match", "No Match","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+SchoolNull1 <- list("No Match", "No Match","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Schools.rds")
