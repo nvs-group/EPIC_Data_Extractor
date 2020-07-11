@@ -52,6 +52,19 @@ library(readxl)
 channel <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/IPEDS201819.accdb")
 
 
+# CIP List ***************Create full list of CIP codes and names *********** ----
+#pull full CIP code list from the IPEDS data
+CIP_List0 <- sqlQuery(channel, "SELECT varName, Codevalue, valueLabel FROM valuesets18 WHERE Codevalue Like '__.____'", as.is = TRUE) 
+CIP_List1 <- CIP_List0[-c(1)]
+
+# remove cip names that end with a "." and save unique records only. Save the dataframe as an RDS file.
+CIP_List1$valueLabel <- gsub(glob2rx("*."), "*", CIP_List1$valueLabel, ignore.case = TRUE) #replace " - USA" with ""
+CIP_List1 <- filter(CIP_List1, valueLabel != "*")
+CIP_List <- unique(CIP_List1)
+
+saveRDS(CIP_List, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/CIP_List.rds")                                                      #Need to add TEXT for codes
+
+
 # CIP Data ************************* CREATE CIP DATA FILE **************************************** ----
 # import data table c2018_a (which includes completion information by institution) from IPEDS access database
 CIP_Data0 <- sqlQuery(channel, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT, MAJORNUM FROM C2018_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
@@ -148,17 +161,18 @@ OCCFcst1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/
                                     "Entry_Degree", "Experience", "OJT"),
                        col_types = c("text", "text", "text", "numeric", "numeric", "numeric", 
                                     "numeric", "numeric", "numeric", "numeric", "text", "text", "text"))
+#The following file only has detailed occupational codes. Summary codes are not included in forcast or quintile data
 OCCCODE1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/soc_2010_to_2018_crosswalk.xlsx", 
-                       skip = 8)
+                       skip = 8) #This file will need to be replaced once the forecast info is available by the 2018 SOC codes
+OCCCODE1 <- filter(OCCCODE1, Duplicate == "No")  #delete manually selected "duplicate" records 
 #OCCFcst2 <- left_join(OCCCODE3, OCCFcst1, by = "OCCCode", all = TRUE)
-OCCFcst2 <- merge(OCCCODE1, OCCFcst1, by.x = "2018 SOC Code", by.y = "2010 SOC Code", all = FALSE)
+OCCFcst2 <- merge(OCCCODE1, OCCFcst1, by.x = "2010 SOC Code", by.y = "2010 SOC Code", all =FALSE)
 OCCFcst2 <- OCCFcst2 %>% filter(OCCTYPE %in% "Line item") #delete summary occupations, etc
-OCCFcst3 <- OCCFcst2[ -c(2,3,5,6)]    # delete unused columns
+OCCFcst3 <- OCCFcst2[ -c(1,2,5,6)]    # delete unused columns including 2010 SOC codes and  names
 OCCFcst3 <- rename(OCCFcst3, "OCCNAME" = "soc_2010_to_2018_crosswalk")  # rename "soc_2010_to_2018_crosswalk" to "OCCNAME" in order to merge with OCCFcst
-OCCFcst3 <- rename(OCCFcst3, "OCCCODE" = "2018 SOC Code")  # rename OCCNAME to occ_title in order to merge with OCCFcst
-
 OCCFcst4 <- merge(x = OCCFcst3, y = DegreeCrosswalk, by="Entry_Degree", all = FALSE)  # add "Entry_Code" to dataframe
 OCCFcst4$Entry_Code <- as.character(OCCFcst4$Entry_Code)  #Change Entry_Code from Integer to Character
+OCCFcst4 <- rename(OCCFcst4, "OCCCODE" = "2018 SOC Code")  # rename OCCNAME to occ_title in order to merge with OCCFcst
 
 OCCFcst <- unique(OCCFcst4)                 # delete duplicates
 
@@ -186,13 +200,24 @@ OCC_Detail1$OCCNAME <- ifelse(is.na(OCC_Detail1$OCCNAME), OCC_Detail1$occ_title,
 OCCCODE1 <- rename(OCCCODE1, "OCCCODE" = "2018 SOC Code")  # rename OCCNAME to occ_title in order to merge with OCCFcst
 
 OCC_Detail2 <- left_join(x = OCCCODE1, y = OCC_Detail1, by.x = "2018 SOC Code", by.y = "OCCCODE", all = TRUE)
-OCC_Detail3 <- OCC_Detail2[ -c(1,2,6,20,21,22,23)]    # delete unused columns
+OCC_Detail3 <- OCC_Detail2[ -c(1,2,4,5,21,22,23,24)]    # delete unused columns
 OCC_Detail4 <- OCC_Detail3 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
 OCC_Detail5 <- OCC_Detail4 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-OCC_Detail6 <- rename(OCC_Detail5, OCCNAME = "soc_2010_to_2018_crosswalk")  # rename occ_title.y to OCCNAME in order to merge with OCCFcst
 
+OCC_Detail6 <- OCC_Detail5 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCC_Detail <- filter(OCC_Detail6, OCCTYPE != "0") #delete records where OCCTYPE equals "0"
 
-OCC_Detail <- OCC_Detail6 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
+# When no quintile data is available, build quintile data from the Median salary in the Forecast data file
+OCC_Detail$a_pct90 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
+                              OCC_Detail$MedWage * 1.5342, OCC_Detail$a_pct90)
+OCC_Detail$a_pct75 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
+                              OCC_Detail$MedWage * 1.27, OCC_Detail$a_pct75)
+OCC_Detail$a_median <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
+                                OCC_Detail$MedWage * 1, OCC_Detail$a_median)
+OCC_Detail$a_pct25 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
+                              OCC_Detail$MedWage * .7825, OCC_Detail$a_pct25)
+OCC_Detail$a_pct10 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
+                              OCC_Detail$MedWage * .628, OCC_Detail$a_pct10)
 
 # Fill in missing salary data using average difference between qintiles for "national "U.S." dataset NAICS "000000"
 # The source of this data is "all_data_M_2019.xlsx", sheet = "All May 2019 Data"
@@ -284,8 +309,8 @@ Backbone <- Backbone7 %>% mutate_if(is.numeric, ~replace(., is.na(.),0)) # chang
 # Save RDS file
 saveRDS(Backbone, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Backbone.rds")
 
-Backbone$Index <- rownames(Backbone) #Create index using Rownames will return rownumbers present in Dataset,df=DataFrame name.
-Backbone$Index = as.numeric(as.character(Backbone$Index)) # change index from text to number
+#Backbone$Index <- rownames(Backbone) #Create index using Rownames will return rownumbers present in Dataset,df=DataFrame name.
+#Backbone$Index = as.numeric(as.character(Backbone$Index)) # change index from text to number
 
 # AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
 AltTitle <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Alternate Titles.xlsx", col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
