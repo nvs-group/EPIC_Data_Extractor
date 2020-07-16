@@ -233,7 +233,7 @@ OCC_Detail$X90p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct90 * 208
 OCC_Detail$X17p <- (OCC_Detail$X10p + OCC_Detail$X25p)/2
 OCC_Detail$X82p <- (OCC_Detail$X75p + OCC_Detail$X90p)/2
 
-#set all salary data to integer status
+#set all salary data to integer datatype
 OCC_Detail$X10p = as.integer(as.numeric(OCC_Detail$X10p)) #changes numeric column to integer
 OCC_Detail$X17p = as.integer(as.numeric(OCC_Detail$X17p)) #changes numeric column to integer
 OCC_Detail$X25p = as.integer(as.numeric(OCC_Detail$X25p)) #changes numeric column to integer
@@ -241,6 +241,7 @@ OCC_Detail$X50p = as.integer(as.numeric(OCC_Detail$X50p)) #changes numeric colum
 OCC_Detail$X75p = as.integer(as.numeric(OCC_Detail$X75p)) #changes numeric column to integer
 OCC_Detail$X82p = as.integer(as.numeric(OCC_Detail$X82p)) #changes numeric column to integer
 OCC_Detail$X90p = as.integer(as.numeric(OCC_Detail$X90p)) #changes numeric column to integer
+
 
 # Generate total factors for salary forecast over time: Low, Med, Hi refers to competency level. Late is at retirement age
 # 
