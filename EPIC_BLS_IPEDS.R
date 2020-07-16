@@ -233,6 +233,15 @@ OCC_Detail$X90p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct90 * 208
 OCC_Detail$X17p <- (OCC_Detail$X10p + OCC_Detail$X25p)/2
 OCC_Detail$X82p <- (OCC_Detail$X75p + OCC_Detail$X90p)/2
 
+#set all salary data to integer status
+OCC_Detail$X10p = as.integer(as.numeric(OCC_Detail$X10p)) #changes numeric column to integer
+OCC_Detail$X17p = as.integer(as.numeric(OCC_Detail$X17p)) #changes numeric column to integer
+OCC_Detail$X25p = as.integer(as.numeric(OCC_Detail$X25p)) #changes numeric column to integer
+OCC_Detail$X50p = as.integer(as.numeric(OCC_Detail$X50p)) #changes numeric column to integer
+OCC_Detail$X75p = as.integer(as.numeric(OCC_Detail$X75p)) #changes numeric column to integer
+OCC_Detail$X82p = as.integer(as.numeric(OCC_Detail$X82p)) #changes numeric column to integer
+OCC_Detail$X90p = as.integer(as.numeric(OCC_Detail$X90p)) #changes numeric column to integer
+
 # Generate total factors for salary forecast over time: Low, Med, Hi refers to competency level. Late is at retirement age
 # 
 OCC_Detail$LowLate <- OCC_Detail$X10p * 2.51872923999183
@@ -263,6 +272,7 @@ OCC_Detail$MedOccF <- sub("NaN",0,OCC_Detail$MedOccF) #replace "NaN" with "0"
 OCC_Detail$MedOccF = as.numeric(as.character(OCC_Detail$MedOccF)) #make column a numeric
 OCC_Detail$HiOccF <- sub("NaN",0,OCC_Detail$HiOccF) #replace "NaN" with "0"
 OCC_Detail$HiOccF = as.numeric(as.character(OCC_Detail$HiOccF)) #make column a numeric
+
 
 # save as RDS file
 saveRDS(OCC_Detail, "C:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/Occupations.rds")
