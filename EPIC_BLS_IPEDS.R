@@ -195,17 +195,32 @@ OCCQint4 <- OCCQint3 %>% filter(o_group %in% "detailed")
 OCCQint5 <- OCCQint4[ -c(1,2,3,4,5,6,7,12,13,14,15,18)]  # removed unused columns
 OCCQint <- rename(OCCQint5, OCCCODE = occ_code)  # rename occ_code to OCCCODE in order to merge with OCCFcst
 
+# Merge forecast data and salary quintile data
 OCC_Detail1 <- merge(x=OCCFcst, y=OCCQint, by="OCCCODE", all = TRUE)  #Merge OCC forecast & OCC salary data
-OCC_Detail1$OCCNAME <- ifelse(is.na(OCC_Detail1$OCCNAME), OCC_Detail1$occ_title, OCC_Detail1$OCCNAME)     # combine OCCNAME and occ_title
-OCCCODE1 <- rename(OCCCODE1, "OCCCODE" = "2018 SOC Code")  # rename OCCNAME to occ_title in order to merge with OCCFcst
 
-OCC_Detail2 <- left_join(x = OCCCODE1, y = OCC_Detail1, by.x = "2018 SOC Code", by.y = "OCCCODE", all = TRUE)
+# Insert imputed data comment where OCC Names do not match 
+OCC_Detail1$comment <- ifelse(is.na(OCC_Detail1$OCCNAME), "Some missing data has been imputed", "")
+
+# combine 2018 OCCNAME and 2010 occ_title
+OCC_Detail1$OCCNAME <- ifelse(is.na(OCC_Detail1$OCCNAME), OCC_Detail1$occ_title, OCC_Detail1$OCCNAME)     
+
+# combine the OCC_Detail file with the updated OCCCODES
+OCC_Detail2 <- left_join(x = OCCCODE1, y = OCC_Detail1, by.x = "OCCCODE2010", by.y = "OCCCODE", all = TRUE)
+
+# add comment for those OCCCODEs that have been updated
+OCC_Detail2$comment <- if_else(OCC_Detail2$"OCCCODE2010" != OCC_Detail2$OCCCODE, 
+                              "Some missing data has been imputed", OCC_Detail$comment <- "")
+
 OCC_Detail3 <- OCC_Detail2[ -c(1,2,4,5,21,22,23,24)]    # delete unused columns
 OCC_Detail4 <- OCC_Detail3 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
 OCC_Detail5 <- OCC_Detail4 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 OCC_Detail6 <- OCC_Detail5 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
 OCC_Detail <- filter(OCC_Detail6, OCCTYPE != "0") #delete records where OCCTYPE equals "0"
+
+# Set comment field to show salary data has been imputed
+OCC_Detail$comment <- if_else(OCC_Detail$a_pct90 == "0" & OCC_Detail$MedWage != "0", 
+                              "Some missing data has been imputed", OCC_Detail$comment <- "")
 
 # When no quintile data is available, build quintile data from the Median salary in the Forecast data file
 OCC_Detail$a_pct90 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
@@ -258,12 +273,12 @@ OCC_Detail$HiOccF <- (OCC_Detail$X90p/OCC_Detail$HiLate)^(1/50)
 OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2018", "Emply2028", 
                               "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                               "Entry_Code", "Entry_Degree", "Experience", 
-                              "OJT", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
+                              "OJT", "comment", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
                               "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF")]
 OCC_Detail8 <- unique(OCC_Detail7)
 
 # Create Occupation "No Match" record
-OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"","","","",0,0,0,0,0,0,0,0,0,0,0,0,0) 
+OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"","","","","",0,0,0,0,0,0,0,0,0,0,0,0,0) 
 OCC_Detail <- rbind(OCC_Detail8, OCCNull1, drop = FALSE)
 
 #Replace "NaN" elements with 0
@@ -343,4 +358,4 @@ SchoolDataDetail <- SchoolData %>% full_join(CIP_Data, by = "UNITID")
 SchoolDataDetail <- SchoolDataDetail %>% full_join(OCC_CIP_CW, by = "CIPCODE")
 SchoolDataDetail <- SchoolDataDetail[ -c(41,42,43,45,46)]
 SchoolDataDetail <- unique(SchoolDataDetail)
-write.csv(SchoolDataDetail, "c:/Users/lccha/OneDrive/NVS EPIC/Source Data/Master Data/schooldata.csv")
+write.csv(SchoolDataDetail, "c:/Users/lccha/OneDrive/NVS/NVS EPIC/Source Data/Master Data/schooldata.csv")
