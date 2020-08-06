@@ -344,7 +344,7 @@ saveRDS(Backbone, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 #Backbone$Index = as.numeric(as.character(Backbone$Index)) # change index from text to number
 
 # AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
-AltTitle <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Alternate Titles.xlsx", col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
+AltTitle <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Alternate Titles.xlsx", skip = 1, col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
 # Trim OCCCODE to 7 Digits from 10 digits
 AltTitle$OCCCODE <- strtrim(AltTitle$OCCCODE, 7)  
 #Retain only OCCCODE and AltTitle columns
