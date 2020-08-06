@@ -96,7 +96,7 @@ CIP_Data2 <- CIP_Data1 %>% filter(AWLEVEL %in% DegreeCodes)
 #Add Years to dataSetName3 file by AWLEVEL
 CIP_Data3 <- merge(x=CIP_Data2, y=DegreeCrosswalk, by="AWLEVEL", all = FALSE)
 CIP_Data <- CIP_Data3[,c("CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]       #Designate columns to keep
-saveRDS(CIP_Data, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIPS.rds")                                                      #Need to add TEXT for codes
+#saveRDS(CIP_Data, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIPS.rds")                                                      #Need to add TEXT for codes
 
 
 # Schools.rds ******************************** CREATE SCHOOL FILE ********************************** ----
