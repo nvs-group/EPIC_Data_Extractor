@@ -49,12 +49,16 @@ library(readxl)
 
 
 # IPEDS Access***** Create Channel to IPEDS Access file ************* ----
-channel <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201819.accdb")
+#Need latest Microsoft Access Database Engine 2010 Redistributable 64bit in order to use the channel function
+#The IPEDS data can be found at https://nces.ed.gov/ipeds/use-the-data/download-access-database
+#channela is the most recent "Final" IPEDS date. channelb is the most recent "Preliminary" IPEDS data
+channelb <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201819.accdb")
+channela <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201718.accdb")
 
 
 # CIP List ***************Create full list of CIP codes and names *********** ----
 #pull full CIP code list from the IPEDS data
-CIP_List0 <- sqlQuery(channel, "SELECT varName, Codevalue, valueLabel FROM valuesets18 WHERE Codevalue Like '__.____'", as.is = TRUE) 
+CIP_List0 <- sqlQuery(channelb, "SELECT varName, Codevalue, valueLabel FROM valuesets18 WHERE Codevalue Like '__.____'", as.is = TRUE) 
 CIP_List1 <- CIP_List0[-c(1)]
 
 # remove cip names that end with a "." and save unique records only. Save the dataframe as an RDS file.
@@ -67,7 +71,9 @@ saveRDS(CIP_List, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 
 # CIP Data ************************* CREATE CIP DATA FILE **************************************** ----
 # import data table c2018_a (which includes completion information by institution) from IPEDS access database
-CIP_Data0 <- sqlQuery(channel, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT, MAJORNUM FROM C2018_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
+CIP_Data0 <- sqlQuery(channelb, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT, MAJORNUM FROM C2018_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
+
+#combine total awards to include double majors as separate awards
 Major1 <- CIP_Data0 %>% filter(MAJORNUM ==1)  #select degrees awarded as first or primary major
 Major2 <- CIP_Data0 %>% filter(MAJORNUM ==2)  #select degrees awarded as second or dual major
 MajorT <- merge(Major1, Major2, by = c("CIPCODE", "UNITID", "AWLEVEL"), all = TRUE)
@@ -100,15 +106,45 @@ CIP_Data <- CIP_Data3[,c("CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]   
 
 
 # Schools.rds ******************************** CREATE SCHOOL FILE ********************************** ----
-School1 <- sqlQuery(channel, "SELECT UNITID, INSTNM, CITY, STABBR, WEBADDR FROM HD2018", as.is = TRUE ) 
-School2 <- sqlQuery(channel, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
-School3 <- sqlQuery(channel, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
-School4 <- sqlQuery(channel, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
+#Load data from latest "Preliminary" IPEDS files using "channelb"
+School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, WEBADDR FROM HD2018", as.is = TRUE ) 
+School2 <- sqlQuery(channelb, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
+School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
+School3 <- School3 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
 School4 <- School4 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-School5 <- sqlQuery(channel, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_18", as.is = TRUE ) 
+School5 <- sqlQuery(channelb, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_18", as.is = TRUE ) 
 School5 <- School5 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-School6 <- sqlQuery(channel, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1", as.is = TRUE )
+School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1", as.is = TRUE )
 School6 <- School6 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+
+#Load data from latest "Final" IPEDS files using "channela" 
+School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, WEBADDR FROM HD2017", as.is = TRUE ) 
+School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2017", as.is = TRUE ) 
+School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2017_AY", as.is = TRUE )
+School3a <- School3a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2017", as.is = TRUE ) 
+School4a <- School4a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_17", as.is = TRUE ) 
+School5a <- School5a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1617_P1", as.is = TRUE )
+School6a <- School6a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+
+#If Preliminary data is "0" use latest "Final" data
+School2$APPLCN <- ifelse(School2$APPLCN == 0,School2a$APPLCN,School2$APPLCN)
+School2$ADMSSN <- ifelse(School2$ADMSSN == 0,School2a$ADMSSN,School2$ADMSSN)
+School2$ENRLT <- ifelse(School2$ENRLT == 0,School2a$ENRLT,School2$ENRLT)
+
+School3$TUITION2 <- ifelse(School3$TUITION2 == 0,School3a$TUITION2,School3$TUITION2)
+School3$TUITION3 <- ifelse(School3$TUITION3 == 0,School3a$TUITION3,School3$TUITION3)
+School3$TUITION6 <- ifelse(School3$TUITION6 == 0,School3a$TUITION6,School3$TUITION6)
+School3$TUITION7 <- ifelse(School3$TUITION7 == 0,School3a$TUITION7,School3$TUITION7)
+School3$FEE2 <- ifelse(School3$FEE2 == 0,School3a$FEE2,School3$FEE2)
+School3$FEE3 <- ifelse(School3$FEE3 == 0,School3a$FEE3,School3$FEE3)
+
+School4$ROOMAMT <- ifelse(School4$ROOMAMT == 0,School4a$ROOMAMT,School4$ROOMAMT)
+School4$BOARDAMT <- ifelse(School4$BOARDAMT == 0,School4a$BOARDAMT,School4$BOARDAMT)
+School4$RMBRDAMT <- ifelse(School4$RMBRDAMT == 0,School4a$RMBRDAMT,School4$RMBRDAMT)
 
 # Create Graduation Rate Factor for each school
 
@@ -132,15 +168,15 @@ SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # c
 # Calculate total cost for in state and out of state undergraduate students
 SchoolData$TotCstInHi <- SchoolData$TUITION2 + SchoolData$FEE2 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
   SchoolData$BOARDAMT + SchoolData$RMBRDAMT
-SchoolData$TotCstOutHi <- SchoolData$TUITION3 + SchoolData$FEE3 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+SchoolData$TotCstOutHi <- SchoolData$TUITION3 + SchoolData$RMBRDAMT + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
   SchoolData$BOARDAMT + SchoolData$RMBRDAMT
-SchoolData$TotCstInLo <- ifelse(SchoolData$TotCstInHi == 0,0,SchoolData$TotCstInHi - SchoolData$IGRNT_A)
-SchoolData$TotCstOutLo <- ifelse(SchoolData$TotCstOutHi == 0,0,SchoolData$TotCstOutHi - SchoolData$IGRNT_A)
+SchoolData$TotCstInLo <- ifelse(SchoolData$TUITION2 == 0,0,SchoolData$TotCstInHi - SchoolData$IGRNT_A)
+SchoolData$TotCstOutLo <- ifelse(SchoolData$TUITION3 == 0,0,SchoolData$TotCstOutHi - SchoolData$IGRNT_A)
 SchoolData$UNITID <- as.character(SchoolData$UNITID)  # Make UNITID a character string
-SchoolData$GTotCstInHi <- SchoolData$TUITION6 + SchoolData$FEE6 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
-  SchoolData$BOARDAMT + SchoolData$RMBRDAMT
-SchoolData$GTotCstOutHi <- SchoolData$TUITION7 + SchoolData$FEE7 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
-  SchoolData$BOARDAMT + SchoolData$RMBRDAMT
+SchoolData$GTotCstInHi <- ifelse(SchoolData$TUITION6 == 0,0,SchoolData$TUITION6 + SchoolData$FEE6 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+  SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
+SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7 + SchoolData$FEE7 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+  SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
