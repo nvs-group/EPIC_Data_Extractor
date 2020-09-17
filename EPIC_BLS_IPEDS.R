@@ -207,7 +207,7 @@ OCCCODE2 <- rename(OCCCODE2, "OCCCODE" = "2018 SOC Code")  # rename "2018 SOC Co
 
 OCCCODE3 <- filter(OCCCODE2, Duplicate == "No")  #delete manually selected "duplicate" records 
 
-#
+#convert SOC 2010 codes to SOC 2018 codes
 OCCFcst2 <- merge(OCCCODE3, OCCFcst1, by = "OCCCODE2010", all =FALSE)
 OCCFcst2 <- OCCFcst2 %>% filter(OCCTYPE %in% "Line item") #delete summary occupations, etc
 OCCFcst3 <- OCCFcst2[ -c(1,2,5,6)]    # delete unused columns including 2010 SOC codes and  names
@@ -380,18 +380,25 @@ saveRDS(Backbone, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 #Backbone$Index = as.numeric(as.character(Backbone$Index)) # change index from text to number
 
 # AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
-AltTitle <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Alternate Titles.xlsx", skip = 1, col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
+AltTitle0 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Alternate Titles.xlsx", skip = 1, col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
 # Trim OCCCODE to 7 Digits from 10 digits
-AltTitle$OCCCODE <- strtrim(AltTitle$OCCCODE, 7)  
+AltTitle0$OCCCODE <- strtrim(AltTitle0$OCCCODE, 7)  
 #Retain only OCCCODE and AltTitle columns
-AltTitle <- AltTitle[ -c(2,4:5)]
-AltTitle1<- AltTitle[order(AltTitle$AltName),c(1,2)] #sort by Alt Name
+AltTitle1 <- AltTitle0[ -c(2,4:5)]
+
+#rename column
+AltTitle2 <- rename(AltTitle1, OCCCODE2010 = OCCCODE)  # Rename column headings
+#Map 2010 OCC codes to 2018 OCC codes
+AltTitle3 <- merge(x = AltTitle2, y = OCCCODE3, by="OCCCODE2010", all = TRUE)
+AltTitle<- AltTitle3[order(AltTitle3$AltName),c(4,2)] #sort by Alt Name
+
 # save the file as an RDS file
 saveRDS(AltTitle, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/AltTitle.rds")
 
 
 #do not forget this, otherwise you lock access database from editing.
-close(channel) 
+close(channela) 
+close(channelb)
 
 # Diagnotic Tables
 # Schools
