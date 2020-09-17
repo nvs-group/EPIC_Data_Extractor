@@ -21,8 +21,10 @@ library(readxl)
 library(rpivotTable)
 
 #Load QCEW single file data and Other files from https://www.bls.gov/cew/downloadable-data-files.htm
-qcewsgl2019 <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/County/2019.q1-q4.singlefile.csv")
-qcew2019 <- filter(qcewsgl2019, qtr == "4" & agglvl_code > "69" & agglvl_code < "75")  #qtr == "4" & aggregation levels
+qcewsgl <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/County/2020.q1-q1.singlefile.csv")
+qcew0 <- filter(qcewsgl, qtr == "1" & agglvl_code > "69" & agglvl_code < "75")  #qtr == "1" & aggregation levels
+#qcewsgl2019 <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/County/2019.q1-q4.singlefile.csv")
+#qcew2019 <- filter(qcewsgl2019, qtr == "4" & agglvl_code > "69" & agglvl_code < "75")  #qtr == "4" & aggregation levels
 #qcewsgl2018 <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/County/2018.q1-q4.singlefile.csv")
 #qcew2018 <- filter(qcewsgl2018, qtr == "3" & agglvl_code > "69" & agglvl_code < "80")
 
@@ -33,7 +35,7 @@ owner <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/ownership_titles.c
 size <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/size_titles.csv")
 chg_pc <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/chg_pc.csv")
 
-qcew1 <- merge(qcew2019, industry, by="industry_code")
+qcew1 <- merge(qcew0, industry, by="industry_code")
 qcew2 <- merge(qcew1, area, by="area_fips")
 qcew3 <- merge(qcew2, agglevel, by="agglvl_code")
 qcew4 <- merge(qcew3, size, by="size_code")
@@ -42,7 +44,7 @@ qcew5$decline_amt <- qcew5$total_qtrly_wages * qcew5$ChgPC
 qcew5$decline_pc <- qcew5$decline_amt / qcew5$total_qtrly_wages
 
 # Data for 1 quarter only saved as csv for loading into an excel pivot table
-write.csv(qcew5, "C:/Users/lccha/OneDrive/Database/QCEW Data/County/qcew2019q4.csv")
+write.csv(qcew5, "C:/Users/lccha/OneDrive/Database/QCEW Data/County/qcew2020q1.csv")
 
 rpivotTable(qcew5)
 
