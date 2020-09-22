@@ -119,32 +119,32 @@ School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1",
 School6 <- School6 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Load data from latest "Final" IPEDS files using "channela" 
-School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, WEBADDR FROM HD2017", as.is = TRUE ) 
-School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2017", as.is = TRUE ) 
-School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2017_AY", as.is = TRUE )
-School3a <- School3a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2017", as.is = TRUE ) 
-School4a <- School4a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_17", as.is = TRUE ) 
-School5a <- School5a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1617_P1", as.is = TRUE )
-School6a <- School6a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+#School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, WEBADDR FROM HD2017", as.is = TRUE ) 
+#School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2017", as.is = TRUE ) 
+#School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2017_AY", as.is = TRUE )
+#School3a <- School3a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+#School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2017", as.is = TRUE ) 
+#School4a <- School4a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+#School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_17", as.is = TRUE ) 
+#School5a <- School5a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+#School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1617_P1", as.is = TRUE )
+#School6a <- School6a %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #If Preliminary data is "0" use latest "Final" data
-School2$APPLCN <- ifelse(School2$APPLCN == 0,School2a$APPLCN,School2$APPLCN)
-School2$ADMSSN <- ifelse(School2$ADMSSN == 0,School2a$ADMSSN,School2$ADMSSN)
-School2$ENRLT <- ifelse(School2$ENRLT == 0,School2a$ENRLT,School2$ENRLT)
+#School2$APPLCN <- ifelse(School2$APPLCN == 0,School2a$APPLCN,School2$APPLCN)
+#School2$ADMSSN <- ifelse(School2$ADMSSN == 0,School2a$ADMSSN,School2$ADMSSN)
+#School2$ENRLT <- ifelse(School2$ENRLT == 0,School2a$ENRLT,School2$ENRLT)
 
-School3$TUITION2 <- ifelse(School3$TUITION2 == 0,School3a$TUITION2,School3$TUITION2)
-School3$TUITION3 <- ifelse(School3$TUITION3 == 0,School3a$TUITION3,School3$TUITION3)
-School3$TUITION6 <- ifelse(School3$TUITION6 == 0,School3a$TUITION6,School3$TUITION6)
-School3$TUITION7 <- ifelse(School3$TUITION7 == 0,School3a$TUITION7,School3$TUITION7)
-School3$FEE2 <- ifelse(School3$FEE2 == 0,School3a$FEE2,School3$FEE2)
-School3$FEE3 <- ifelse(School3$FEE3 == 0,School3a$FEE3,School3$FEE3)
+#School3$TUITION2 <- ifelse(School3$TUITION2 == 0,School3a$TUITION2,School3$TUITION2)
+#School3$TUITION3 <- ifelse(School3$TUITION3 == 0,School3a$TUITION3,School3$TUITION3)
+#School3$TUITION6 <- if_else(School3$TUITION6 == 0,School3a$TUITION6,School3$TUITION6)
+#School3$TUITION7 <- ifelse(School3$TUITION7 == 0,School3a$TUITION7,School3$TUITION7)
+#School3$FEE2 <- ifelse(School3$FEE2 == 0,School3a$FEE2,School3$FEE2)
+#School3$FEE3 <- ifelse(School3$FEE3 == 0,School3a$FEE3,School3$FEE3)
 
-School4$ROOMAMT <- ifelse(School4$ROOMAMT == 0,School4a$ROOMAMT,School4$ROOMAMT)
-School4$BOARDAMT <- ifelse(School4$BOARDAMT == 0,School4a$BOARDAMT,School4$BOARDAMT)
-School4$RMBRDAMT <- ifelse(School4$RMBRDAMT == 0,School4a$RMBRDAMT,School4$RMBRDAMT)
+#School4$ROOMAMT <- ifelse(School4$ROOMAMT == 0,School4a$ROOMAMT,School4$ROOMAMT)
+#School4$BOARDAMT <- ifelse(School4$BOARDAMT == 0,School4a$BOARDAMT,School4$BOARDAMT)
+#School4$RMBRDAMT <- ifelse(School4$RMBRDAMT == 0,School4a$RMBRDAMT,School4$RMBRDAMT)
 
 # Create Graduation Rate Factor for each school
 
