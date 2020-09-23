@@ -213,6 +213,7 @@ SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # c
 #Add "No Match" record for schools
 SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
+SchoolData <- rename(SchoolData, INSTNM = INSTNM.x, CITY = CITY.x, STABBR = STABBR.x, WEBADDR = WEBADDR.x)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
 
