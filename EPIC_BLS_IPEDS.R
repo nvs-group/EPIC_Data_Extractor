@@ -63,12 +63,13 @@ channela <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source D
 
 # CIP List ***************Create full list of CIP codes and names *********** ----
 #pull full CIP code list from the IPEDS data
-CIP_List0 <- sqlQuery(channelb, "SELECT varName, Codevalue, valueLabel FROM valuesets18 WHERE Codevalue Like '__.____'", as.is = TRUE) 
-CIP_List1 <- CIP_List0[-c(1)]
+CIP_List0 <- sqlQuery(channelb, "SELECT varTitle, varName, Codevalue, valueLabel FROM valuesets18 WHERE Codevalue Like '__.____'", as.is = TRUE) 
+CIP_List0 <- filter(CIP_List0, varTitle == "CIPCODE")
+CIP_List1 <- CIP_List0[-c(1,2)]
 
 # remove cip names that end with a "." and save unique records only. Save the dataframe as an RDS file.
-CIP_List1$valueLabel <- gsub(glob2rx("*."), "*", CIP_List1$valueLabel, ignore.case = TRUE) #replace " - USA" with ""
-CIP_List1 <- filter(CIP_List1, valueLabel != "*")
+#CIP_List1$valueLabel <- gsub(glob2rx("*."), "*", CIP_List1$valueLabel, ignore.case = TRUE) #replace " - USA" with ""
+#CIP_List1 <- filter(CIP_List1, valueLabel != "*")
 CIP_List <- unique(CIP_List1)
 
 saveRDS(CIP_List, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP_List.rds")                                                      #Need to add TEXT for codes
