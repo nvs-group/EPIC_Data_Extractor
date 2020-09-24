@@ -131,6 +131,7 @@ School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1617_P1"
 
 #Merge earlier "Final" data with later "Preliminary" then use final data if no preliminary data exists
 School1 <- merge(x=School1, y=School1a, by="UNITID", all = TRUE)
+School1 <- School1 %>% mutate_if(is.character, ~replace(., is.na(.), "")) # change "na" to "0"
 School2 <- merge(x=School2, y=School2a, by="UNITID", all = TRUE)
 School2 <- School2 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 School3 <- merge(x=School3, y=School3a, by="UNITID", all = TRUE)
@@ -141,6 +142,11 @@ School5 <- merge(x=School5, y=School5a, by="UNITID", all = TRUE)
 School5 <- School5 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 School6 <- merge(x=School6, y=School6a, by="UNITID", all = TRUE)
 School6 <- School6 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+
+School1$INSTNM <- ifelse(School1$INSTNM.x == "",School1$INSTNM.y,School1$INSTNM.x)
+School1$CITY <- ifelse(School1$CITY.x == "",School1$CITY.y,School1$CITY.x)
+School1$STABBR <- ifelse(School1$STABBR.x == "",School1$STABBR.y,School1$STABBR.x)
+School1$WEBADDR <- ifelse(School1$WEBADDR.x == "",School1$WEBADDR.y,School1$WEBADDR.x)
 
 School2$APPLCN <- ifelse(School2$APPLCN.x == 0,School2$APPLCN.y,School2$APPLCN.x)
 School2$ADMSSN <- ifelse(School2$ADMSSN.x == 0,School2$ADMSSN.y,School2$ADMSSN.x)
@@ -193,10 +199,10 @@ SchoolData <- merge(x=SchoolData, y=School6, by="UNITID", all = TRUE)
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 # Calculate total cost for in state and out of state undergraduate students
-SchoolData$TotCstInHi <- SchoolData$TUITION2 + SchoolData$FEE2 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
-  SchoolData$BOARDAMT + SchoolData$RMBRDAMT
-SchoolData$TotCstOutHi <- SchoolData$TUITION3 + SchoolData$RMBRDAMT + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
-  SchoolData$BOARDAMT + SchoolData$RMBRDAMT
+SchoolData$TotCstInHi <- ifelse(SchoolData$TUITION2 == 0,0,SchoolData$TUITION2 + SchoolData$FEE2 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+  SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
+SchoolData$TotCstOutHi <- ifelse(SchoolData$TUITION3 == 0,0,SchoolData$TUITION3 + SchoolData$RMBRDAMT + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+  SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 
 SchoolData$TotCstInLo <- ifelse(SchoolData$TUITION2 == 0,0,SchoolData$TotCstInHi - SchoolData$IGRNT_A)
 SchoolData$TotCstOutLo <- ifelse(SchoolData$TUITION3 == 0,0,SchoolData$TotCstOutHi - SchoolData$IGRNT_A)
@@ -206,14 +212,16 @@ SchoolData$GTotCstInHi <- ifelse(SchoolData$TUITION6 == 0,0,SchoolData$TUITION6 
 SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7 + SchoolData$FEE7 + 
             SchoolData$CHG4AY3 + SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 
-SchoolData <- SchoolData[ c(1,2,3,4,5,16,17,18,37,38,39,40,41,42,43,44,45,52,53,54,67,68,69,70,71,72,73,
-                            74,75,76,77,82,83,84,85,86,87,88,89)]  # removed unused columns
+SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","WEBADDR","APPLCN","ADMSSN","ENRLT",
+                             "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
+                             "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
+                             "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
+                             "TotCstInLo","TotCstOutLo","GTotCstInHi","GTotCstOutHi")]
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
 SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
-SchoolData <- rename(SchoolData, INSTNM = INSTNM.x, CITY = CITY.x, STABBR = STABBR.x, WEBADDR = WEBADDR.x)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
 
