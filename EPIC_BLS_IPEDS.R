@@ -185,6 +185,7 @@ School6$IGRNT_A <- ifelse(School6$IGRNT_A.x == 0,School6$IGRNT_A.y,School6$IGRNT
 School5$pc75 <- 0
 School5$pc100 <- (School5$BAGR100+School5$L4GR100)/(School5$BAGR200+School5$L4GR200)
 School5$pc150 <- (School5$BAGR150+School5$L4GR150)/(School5$BAGR200+School5$L4GR200)
+School5$pc150 <- ifelse(School5$pc150 > 1, 0,School5$pc150)  #Rate over 100% set to 0: error
 School5$pc200 <- (School5$BAGR200+School5$L4GR200)/(School5$BAGR200+School5$L4GR200)
 School5$Factor  <- if_else(School5$pc100 >= .5, ((.5-School5$pc75)/(School5$pc100-School5$pc75)*(1)+3)/4,
                            if_else(School5$pc150 >= .5, ((.5-School5$pc100)/(School5$pc150-School5$pc100)*(2)+4)/4,
@@ -201,7 +202,7 @@ SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # c
 # Calculate total cost for in state and out of state undergraduate students
 SchoolData$TotCstInHi <- ifelse(SchoolData$TUITION2 == 0,0,SchoolData$TUITION2 + SchoolData$FEE2 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
   SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
-SchoolData$TotCstOutHi <- ifelse(SchoolData$TUITION3 == 0,0,SchoolData$TUITION3 + SchoolData$RMBRDAMT + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
+SchoolData$TotCstOutHi <- ifelse(SchoolData$TUITION3 == 0,0,SchoolData$TUITION3 + SchoolData$FEE3 + SchoolData$CHG4AY3 + SchoolData$ROOMAMT + 
   SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 
 SchoolData$TotCstInLo <- ifelse(SchoolData$TUITION2 == 0,0,SchoolData$TotCstInHi - SchoolData$IGRNT_A)
