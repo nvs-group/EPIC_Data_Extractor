@@ -120,6 +120,7 @@ School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TU
 School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
 School5 <- sqlQuery(channelb, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_18", as.is = TRUE ) 
 School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1", as.is = TRUE )
+School7 <- sqlQuery(channelb, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2018", as.is = TRUE )
 
 #Load data from latest "Final" IPEDS files using "channela" 
 School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, WEBADDR FROM HD2017", as.is = TRUE ) 
@@ -128,6 +129,7 @@ School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, T
 School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2017", as.is = TRUE ) 
 School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_17", as.is = TRUE ) 
 School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1617_P1", as.is = TRUE )
+School7a <- sqlQuery(channela, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2018", as.is = TRUE )
 
 #Merge earlier "Final" data with later "Preliminary" then use final data if no preliminary data exists
 School1 <- merge(x=School1, y=School1a, by="UNITID", all = TRUE)
@@ -142,6 +144,8 @@ School5 <- merge(x=School5, y=School5a, by="UNITID", all = TRUE)
 School5 <- School5 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 School6 <- merge(x=School6, y=School6a, by="UNITID", all = TRUE)
 School6 <- School6 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+School7 <- merge(x=School7, y=School7a, by="UNITID", all = TRUE)
+School7 <- School7 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 School1$INSTNM <- ifelse(School1$INSTNM.x == "",School1$INSTNM.y,School1$INSTNM.x)
 School1$CITY <- ifelse(School1$CITY.x == "",School1$CITY.y,School1$CITY.x)
@@ -179,6 +183,9 @@ School5$L4GR200 <- ifelse(School5$L4GR200.x == 0,School5$L4GR200.y,School5$L4GR2
 School6$IGRNT_P <- ifelse(School6$IGRNT_P.x == 0,School6$IGRNT_P.y,School6$IGRNT_P.x)
 School6$IGRNT_A <- ifelse(School6$IGRNT_A.x == 0,School6$IGRNT_A.y,School6$IGRNT_A.x)
 
+School7$FTEUG <- ifelse(School6$FTEUG.x == 0,School6$FTEUG.y,School6$FTEUG.x)
+School7$FTEGD <- ifelse(School6$FTEGD.x == 0,School6$FTEGD.y,School6$FTEGD.x)
+
 # Create Graduation Rate Factor for each school
 
 # Normalize grad rates for 4 (LA) and 2 (L4) year programs
@@ -197,6 +204,7 @@ SchoolData <- merge(x=SchoolData, y=School3, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School4, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School5, by="UNITID", all = TRUE)
 SchoolData <- merge(x=SchoolData, y=School6, by="UNITID", all = TRUE)
+SchoolData <- merge(x=SchoolData, y=School7, by="UNITID", all = TRUE)
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 # Calculate total cost for in state and out of state undergraduate students
@@ -213,7 +221,7 @@ SchoolData$GTotCstInHi <- ifelse(SchoolData$TUITION6 == 0,0,SchoolData$TUITION6 
 SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7 + SchoolData$FEE7 + 
             SchoolData$CHG4AY3 + SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 
-SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","WEBADDR","APPLCN","ADMSSN","ENRLT",
+SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","WEBADDR","APPLCN","ADMSSN","ENRLT","FTEUG","FTEGD",
                              "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
                              "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
                              "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
@@ -221,7 +229,7 @@ SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","WEBADDR","APPLCN"
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
