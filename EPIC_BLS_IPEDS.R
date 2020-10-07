@@ -157,7 +157,7 @@ School2$ADMSSN <- ifelse(School2$ADMSSN.x == 0,School2$ADMSSN.y,School2$ADMSSN.x
 School2$ENRLT <- ifelse(School2$ENRLT.x == 0,School2$ENRLT.y,School2$ENRLT.x)
 
 School3$TUITION2 <- ifelse(School3$TUITION2.x == 0,School3$TUITION2.y,School3$TUITION2.x)
-School3$TUITION3 <- ifelse(School3$TUITION3.x == 0,School3$TUITION3.y,School3$TUITION2.x)
+School3$TUITION3 <- ifelse(School3$TUITION3.x == 0,School3$TUITION3.y,School3$TUITION3.x)
 School3$TUITION6 <- ifelse(School3$TUITION6.x == 0,School3$TUITION6.y,School3$TUITION6.x)
 School3$TUITION7 <- ifelse(School3$TUITION7.x == 0,School3$TUITION7.y,School3$TUITION7.x)
 
