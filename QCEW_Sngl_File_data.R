@@ -19,6 +19,7 @@ library(gmailr)
 library(shinyBS)
 library(readxl)
 library(rpivotTable)
+#library(xlsx)
 
 #Load QCEW single file data and Other files from https://www.bls.gov/cew/downloadable-data-files.htm
 qcewsgl <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/County/2020.q1-q1.singlefile.csv")
@@ -44,48 +45,11 @@ qcew5$decline_amt <- qcew5$total_qtrly_wages * qcew5$ChgPC
 qcew5$decline_pc <- qcew5$decline_amt / qcew5$total_qtrly_wages
 
 # Data for 1 quarter only saved as csv for loading into an excel pivot table
-write.csv(qcew5, "C:/Users/lccha/OneDrive/Database/QCEW Data/County/qcew2020q1.csv")
+write_excel_csv(qcew5, "C:/Users/lccha/OneDrive/Database/QCEW Data/County/qcew2020q1.csv")
 
 rpivotTable(qcew5)
 
 # ************************* End of QCEW by county data extraction *****************************
-
-datatype <- read_delim("https://download.bls.gov/pub/time.series/ce/ce.datatype", 
-                     "\t", escape_double = FALSE, trim_ws = TRUE)
-period <- read_delim("https://download.bls.gov/pub/time.series/ce/ce.period", 
-                     "\t", escape_double = FALSE, trim_ws = TRUE)
-supersector <- read_delim("https://download.bls.gov/pub/time.series/ce/ce.supersector", 
-                     "\t", escape_double = FALSE, trim_ws = TRUE)
-seasonal <- read_delim("https://download.bls.gov/pub/time.series/ce/ce.seasonal", 
-                     "\t", escape_double = FALSE, trim_ws = TRUE)
-data <- read_delim("https://download.bls.gov/pub/time.series/ce/ce.data.0.AllCESSeries", 
-                     "\t", escape_double = FALSE, trim_ws = TRUE)
-national1 <- right_join(supersector, series, by = "supersector_code", copy = FALSE)
-national2 <- right_join(national1, datatype, by = "data_type_code", copy = FALSE)
-national3 <- right_join(national2, industry, by = "industry_code", copy = FALSE)
-national4 <- right_join(national3, data, by = "series_id", copy = FALSE)
-national5 <- filter(national4, seasonal == "S", data_type_code == "01")
-national5$month <- paste(national5$year, national5$period, sep = "", collapse = NULL)
-national <- national5[,c ("supersector_name", "industry_name", "series_title", "data_type_text", "display_level", "year","month", "period", "value","seasonal", "data_type_code")]  # select fields to keep
-
-rpivotTable(national)
-write.csv(national, "C:/Users/lccha/OneDrive/Database/CE Data/National Data/Current_Employment_Statistics/National.csv")
-saveRDS(national,"national.rds")
-
-wages1 <- read_delim("https://download.bls.gov/pub/time.series/ce/ce.data.02b.AllRealEarningsAE", 
-                       "\t", escape_double = FALSE, trim_ws = TRUE)
-wages2 <- right_join(wages1, national3, by = "series_id", copy = FALSE)
-wages2$month <- paste(wages2$year, wages2$period, sep = "", collapse = NULL)
-wages <- wages2[,c ("supersector_name", "industry_name", "series_title", "data_type_text", "display_level", "year", "period", "month", "value","seasonal", "data_type_code")]  # select fields to keep
-
-rpivotTable(wages)
-write.csv(wages, "C:/Users/lccha/OneDrive/Database/CE Data/National Data/Current_Employment_Statistics/Wages.csv")
-
-Combined <- left_join(national,wages, by=c("industry_name","month"), copy = FALSE)
-Combined <- filter(Combined, data_type_code.y == "12" & seasonal.y == "S")
-rpivotTable(Combined)
-write.csv(Combined, "C:/Users/lccha/OneDrive/Database/CE Data/National Data/Current_Employment_Statistics/Combined.csv")
-
 header <- dashboardHeader(title = "BLS")
 
 sidebar <- dashboardSidebar(sidebarMenu(id = "tabs",

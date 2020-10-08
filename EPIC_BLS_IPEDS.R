@@ -51,7 +51,8 @@ library(readxl)
 #        SchoolData$CHG4AY3[i] + SchoolData$ROOMAMT[i] + SchoolData$BOARDAMT[i] + SchoolData$RMBRDAMT[i])}
 #SchoolData <- merge(x=School1, y=School2, by="UNITID", all = TRUE)
 #OCCQint5 <- OCCQint4[ -c(1,2,3,4,5,6,7,12,13,14,15,18)]  # removed unused columns
-
+#write.xlsx(x, file, sheetName = "Sheet1", col.names = TRUE, row.names = TRUE, append = FALSE)
+#write.xlsx2(x, file, sheetName = "Sheet1", col.names = TRUE, row.names = TRUE, append = FALSE) #faster on big files
 
 # IPEDS Access***** Create Channel to IPEDS Access file ************* ----
 #Need latest Microsoft Access Database Engine 2010 Redistributable 64bit in order to use the channel function

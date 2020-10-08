@@ -69,7 +69,7 @@ wages_min <- wages[,c("industry_name", "month", "value")]
 #combine employment and wage data into a single data table.
 empl_wages <- merge(empl, wages_min, by=c("industry_name","month"), all=TRUE)
 
-rpivotTable(empl_wages)
+#rpivotTable(empl_wages)
 #write.csv(empl_wages, "C:/Users/lccha/OneDrive/Database/CE Data/National Data/Current_Employment_Statistics/empl_wages.csv")
 
 #Open the excel files below and inset a pivot table that can then be used to create scatter plots of
@@ -80,8 +80,11 @@ write_excel_csv(empl_wages, "C:/Users/lccha/OneDrive/Database/CE Data/National D
 # ************************** County High Level QCEW Data *************************************
 cnty <- read_delim("https://data.bls.gov/cew/data/files/2019/xls/2019_all_county_high_level.zip", 
                    "\t", escape_double = FALSE, trim_ws = TRUE)
-data <- read.csv(unz("https://data.bls.gov/cew/data/files/2019/xls/2019_all_county_high_level.zip", "file1.csv"), header = TRUE,
-                 sep = ",") 
+
+cnty <- read.csv(unz("https://data.bls.gov/cew/data/files/2019/xls/2019_all_county_high_level.zip", "allhlcn201.csv"), header = TRUE, sep = ",")
+#read.csv(unz("master.zip", "file1.csv"), header = TRUE, sep = ",")
+#data <- read.csv(unz("https://data.bls.gov/cew/data/files/2019/xls/2019_all_county_high_level.zip", "file1.csv"), header = TRUE,
+#                 sep = ",") 
 
 
 #col_names = !append, 
