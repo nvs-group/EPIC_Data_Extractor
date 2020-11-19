@@ -58,11 +58,11 @@ library(readxl)
 # Load Occupation Description File and save as an RDS file ***************************** ----
 
 OCCDescriptions <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Occupation Data.xlsx",
-                              col_names = c("ONET_OCC_Code","Title","Description"))
-OCCDescriptions$OCCCode <- substr(OCCDescriptions$ONET_OCC_Code, 1, 7)
-OCCDescriptions$SubCode <- substr(OCCDescriptions$ONET_OCC_Code, 9, 10)
-OCCDescriptions <- filter(OCCDescriptions, SubCode == "00")
-saveRDS(OCCDescriptions, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/OCCDescriptions.rds")
+                              col_names = c("SOCCODE","OCCNAME","Description"))
+#OCCDescriptions$OCCCode <- substr(OCCDescriptions$ONET_OCC_Code, 1, 7)
+#OCCDescriptions$SubCode <- substr(OCCDescriptions$ONET_OCC_Code, 9, 10)
+#OCCDescriptions <- filter(OCCDescriptions, SubCode == "00")
+saveRDS(OCCDescriptions, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/occupation_desc.rds")
 
 
 # IPEDS Access***** Create Channel to IPEDS Access file ************* ----
