@@ -55,6 +55,15 @@ library(readxl)
 #write.xlsx2(x, file, sheetName = "Sheet1", col.names = TRUE, row.names = TRUE, append = FALSE) #faster on big files
 #data <- read.csv(unz("master.zip", "file1.csv"), header = TRUE, sep = ",") 
 
+# Load Occupation Description File and save as an RDS file ***************************** ----
+
+OCCDescriptions <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Occupation Data.xlsx",
+                              col_names = c("ONET_OCC_Code","Title","Description"))
+OCCDescriptions$OCCCode <- substr(OCCDescriptions$ONET_OCC_Code, 1, 7)
+OCCDescriptions$SubCode <- substr(OCCDescriptions$ONET_OCC_Code, 9, 10)
+OCCDescriptions <- filter(OCCDescriptions, SubCode == "00")
+saveRDS(OCCDescriptions, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/OCCDescriptions.rds")
+
 
 # IPEDS Access***** Create Channel to IPEDS Access file ************* ----
 #Need latest Microsoft Access Database Engine 2010 Redistributable 64bit in order to use the channel function
