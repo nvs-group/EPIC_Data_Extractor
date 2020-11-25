@@ -57,6 +57,7 @@ library(readxl)
 
 # Load Occupation Description File and save as an RDS file ***************************** ----
 
+# from: https://www.onetcenter.org/dictionary/25.1/excel/occupation_data.html
 OCCDescriptions <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Occupation Data.xlsx",
                               col_names = c("SOCCODE","OCCNAME","Description"))
 #OCCDescriptions$OCCCode <- substr(OCCDescriptions$ONET_OCC_Code, 1, 7)
@@ -379,7 +380,7 @@ OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2018", "Emply2028",
 OCC_Detail8 <- unique(OCC_Detail7)
 
 # Create Occupation "No Match" record
-OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"","","","","",0,0,0,0,0,0,0,0,0,0,0,0,0) 
+OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"N/A","N/A","","","",0,0,0,0,0,0,0,0,0,0,0,0,0) 
 OCC_Detail <- rbind(OCC_Detail8, OCCNull1, drop = FALSE)
 
 #Replace "NaN" elements with 0
