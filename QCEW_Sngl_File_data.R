@@ -23,7 +23,7 @@ library(rpivotTable)
 
 #Load QCEW single file data and Other files from https://www.bls.gov/cew/downloadable-data-files.htm
 qcewsgl <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/County/2020.q1-q2.singlefile.csv")
-qcew0 <- filter(qcewsgl, qtr == "2" & agglvl_code > "69" & agglvl_code < "75")  #qtr == "2" & aggregation levels
+qcew0 <- filter(qcewsgl, qtr == "2" & agglvl_code > "69" & agglvl_code < "76")  #qtr == "2" & aggregation levels
 #qcewsgl2019 <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/County/2019.q1-q4.singlefile.csv")
 #qcew2019 <- filter(qcewsgl2019, qtr == "4" & agglvl_code > "69" & agglvl_code < "75")  #qtr == "4" & aggregation levels
 #qcewsgl2018 <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/County/2018.q1-q4.singlefile.csv")
@@ -36,7 +36,8 @@ owner <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/ownership_titles.c
 size <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/size_titles.csv")
 chg_pc <- read.csv("C:/Users/lccha/OneDrive/Database/QCEW Data/chg_pc.csv")
 
-qcew1 <- merge(qcew0, industry, by="industry_code")
+qcew1a <- merge(qcew0, owner, by="own_code")
+qcew1 <- merge(qcew1a, industry, by="industry_code")
 qcew2 <- merge(qcew1, area, by="area_fips")
 qcew3 <- merge(qcew2, agglevel, by="agglvl_code")
 qcew4 <- merge(qcew3, size, by="size_code")
