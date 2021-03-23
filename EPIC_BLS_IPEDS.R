@@ -127,7 +127,7 @@ saveRDS(CIP_Data, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 # Schools.rds ******************************** CREATE SCHOOL FILE ********************************** ----
 #Load data from latest "Preliminary" IPEDS files using "channelb"
 #When a new preliminary data file is released, all of the Access Tables year codes need to be updated below e.g. HD2018 >> HD2019, etc
-School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, WEBADDR FROM HD2018", as.is = TRUE ) 
+School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2018", as.is = TRUE ) 
 School2 <- sqlQuery(channelb, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
 School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
 School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
@@ -136,13 +136,13 @@ School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1",
 School7 <- sqlQuery(channelb, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2018", as.is = TRUE )
 
 #Load data from latest "Final" IPEDS files using "channela" 
-School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, WEBADDR FROM HD2017", as.is = TRUE ) 
+School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2017", as.is = TRUE ) 
 School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2017", as.is = TRUE ) 
 School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2017_AY", as.is = TRUE )
 School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2017", as.is = TRUE ) 
 School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_17", as.is = TRUE ) 
 School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1617_P1", as.is = TRUE )
-School7a <- sqlQuery(channela, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2018", as.is = TRUE )
+School7a <- sqlQuery(channela, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2017", as.is = TRUE )
 
 #Merge earlier "Final" data with later "Preliminary" then use final data if no preliminary data exists
 School1 <- merge(x=School1, y=School1a, by="UNITID", all = TRUE)
@@ -167,6 +167,7 @@ School1$WEBADDR <- ifelse(School1$WEBADDR.x == "",School1$WEBADDR.y,School1$WEBA
 
 School2$APPLCN <- ifelse(School2$APPLCN.x == 0,School2$APPLCN.y,School2$APPLCN.x)
 School2$ADMSSN <- ifelse(School2$ADMSSN.x == 0,School2$ADMSSN.y,School2$ADMSSN.x)
+School2$ADMRT <- ifelse(School2$ADMSSN.x == 0,School2$ADMSSN.y/School2$APPLCN.y,School2$ADMSSN.x/School2$APPLCN.x)
 School2$ENRLT <- ifelse(School2$ENRLT.x == 0,School2$ENRLT.y,School2$ENRLT.x)
 
 School3$TUITION2 <- ifelse(School3$TUITION2.x == 0,School3$TUITION2.y,School3$TUITION2.x)
@@ -196,8 +197,8 @@ School5$L4GR200 <- ifelse(School5$L4GR200.x == 0,School5$L4GR200.y,School5$L4GR2
 School6$IGRNT_P <- ifelse(School6$IGRNT_P.x == 0,School6$IGRNT_P.y,School6$IGRNT_P.x)
 School6$IGRNT_A <- ifelse(School6$IGRNT_A.x == 0,School6$IGRNT_A.y,School6$IGRNT_A.x)
 
-School7$FTEUG <- ifelse(School6$FTEUG.x == 0,School6$FTEUG.y,School6$FTEUG.x)
-School7$FTEGD <- ifelse(School6$FTEGD.x == 0,School6$FTEGD.y,School6$FTEGD.x)
+School7$FTEUG <- ifelse(School7$FTEUG.x == 0,School7$FTEUG.y,School7$FTEUG.x)
+School7$FTEGD <- ifelse(School7$FTEGD.x == 0,School7$FTEGD.y,School7$FTEGD.x)
 
 # Create Graduation Rate Factor for each school
 
