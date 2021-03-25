@@ -19,8 +19,15 @@ library(shinymanager)
 library(gmailr)
 library(shinyBS)
 library(readxl)
+library(pKSEA)
 
 # Tools ********************************* Tools for use as needed ********************* ----
+#percentile rank
+#for(i in 1:6587) {
+  # i-th element of `u1` squared into `i`-th position of `usq`
+#  x[i] <- perc.rank(vector, x[i])
+#}
+
 #unused <- as.integer(c(1:55))
 #rename(iris, petal_length = Petal.Length)  # Rename column headings
 #UnitCIP <- distinct(dataSetName2, .keep_all = FALSE)
@@ -200,6 +207,30 @@ School6$IGRNT_A <- ifelse(School6$IGRNT_A.x == 0,School6$IGRNT_A.y,School6$IGRNT
 School7$FTEUG <- ifelse(School7$FTEUG.x == 0,School7$FTEUG.y,School7$FTEUG.x)
 School7$FTEGD <- ifelse(School7$FTEGD.x == 0,School7$FTEGD.y,School7$FTEGD.x)
 
+
+#Total Enrollment Percentile Rankings ----
+
+School7$FTETOT <- School7$FTEUG + School7$FTEGD
+School7 <- filter(School7, FTETOT > 0)
+School7 <- School7[order(-School7$FTETOT),]
+NumRow <- nrow(School7)
+for(i in 1:NumRow) {
+  School7$PCFTETOT[i] <- perc.rank(School7$FTETOT, School7$FTETOT[i])
+}
+
+
+#Total Admission Percentile Rankings ----
+
+School2 <- filter(School2, ADMRT > 0)
+School2 <- School2[order(-School2$ADMRT),]
+NumRow <- nrow(School2)
+for(i in 1:NumRow) {
+  School2$PCADMRT[i] <- perc.rank(School2$ADMRT, School2$ADMRT[i])
+}
+
+
+write_csv(School7b, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/PCFTEUG.csv")
+
 # Create Graduation Rate Factor for each school
 
 # Normalize grad rates for 4 (LA) and 2 (L4) year programs
@@ -239,11 +270,11 @@ SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","WEBADDR","APPLCN"
                              "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
                              "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
                              "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
-                             "TotCstInLo","TotCstOutLo","GTotCstInHi","GTotCstOutHi")]
+                             "TotCstInLo","TotCstOutLo","GTotCstInHi","GTotCstOutHi","PCADMRT","PCFTETOT")]
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
