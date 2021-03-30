@@ -61,6 +61,7 @@ library(pKSEA)
 #write.xlsx(x, file, sheetName = "Sheet1", col.names = TRUE, row.names = TRUE, append = FALSE)
 #write.xlsx2(x, file, sheetName = "Sheet1", col.names = TRUE, row.names = TRUE, append = FALSE) #faster on big files
 #data <- read.csv(unz("master.zip", "file1.csv"), header = TRUE, sep = ",") 
+#aggregate(x = testDF, by = list(by1, by2), FUN = "mean")
 
 # Load Occupation Description File and save as an RDS file ***************************** ----
 
@@ -128,6 +129,22 @@ CIP_Data2 <- CIP_Data1 %>% filter(AWLEVEL %in% DegreeCodes)
 #Add Years to dataSetName3 file by AWLEVEL
 CIP_Data3 <- merge(x=CIP_Data2, y=DegreeCrosswalk, by="AWLEVEL", all = FALSE)
 CIP_Data <- CIP_Data3[,c("CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]       #Designate columns to keep
+
+#Find total degrees awarded by CIP
+
+CIP_Tot <- aggregate(x = (CIP_Data$CTOTALT), by=list(CIPCODE = CIP_Data$CIPCODE), FUN = sum)
+CIP_Tot <- rename(CIP_Tot, "CTOTALT" = "x")  # Rename column headings
+CIP_Tot <- CIP_Tot[order(-CIP_Tot$CTOTALT),]
+CIP_Tot <- filter(CIP_Tot, CTOTALT > 0)
+CIP_Tot$PC_CIP <- CIP_Tot$x    #Initialize new variable
+NumRow <- nrow(CIP_Tot)
+for(i in 1:NumRow) {
+  CIP_Tot$PC_CIP[i] <- perc.rank(CIP_Tot$CTOTALT, CIP_Tot$CTOTALT[i])
+}
+#Save CIP percentile rank file as .RDS
+saveRDS(CIP_Tot, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP_PC.rds")                                                      #Need to add TEXT for codes
+
+#Save complete CIP_Data file as .RDS
 saveRDS(CIP_Data, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIPS.rds")                                                      #Need to add TEXT for codes
 
 
@@ -170,6 +187,7 @@ School7 <- School7 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change 
 School1$INSTNM <- ifelse(School1$INSTNM.x == "",School1$INSTNM.y,School1$INSTNM.x)
 School1$CITY <- ifelse(School1$CITY.x == "",School1$CITY.y,School1$CITY.x)
 School1$STABBR <- ifelse(School1$STABBR.x == "",School1$STABBR.y,School1$STABBR.x)
+School1$ZIP <- ifelse(School1$ZIP.x == "",School1$ZIP.y,School1$ZIP.x)
 School1$WEBADDR <- ifelse(School1$WEBADDR.x == "",School1$WEBADDR.y,School1$WEBADDR.x)
 
 School2$APPLCN <- ifelse(School2$APPLCN.x == 0,School2$APPLCN.y,School2$APPLCN.x)
@@ -213,6 +231,7 @@ School7$FTEGD <- ifelse(School7$FTEGD.x == 0,School7$FTEGD.y,School7$FTEGD.x)
 School7$FTETOT <- School7$FTEUG + School7$FTEGD
 School7 <- filter(School7, FTETOT > 0)
 School7 <- School7[order(-School7$FTETOT),]
+School7$PCFTETOT <- School7$FTETOT    #Initialize new variable
 NumRow <- nrow(School7)
 for(i in 1:NumRow) {
   School7$PCFTETOT[i] <- perc.rank(School7$FTETOT, School7$FTETOT[i])
@@ -229,7 +248,7 @@ for(i in 1:NumRow) {
 }
 
 
-write_csv(School7b, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/PCFTEUG.csv")
+#write_csv(School7b, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/PCFTEUG.csv")
 
 # Create Graduation Rate Factor for each school
 
@@ -266,7 +285,7 @@ SchoolData$GTotCstInHi <- ifelse(SchoolData$TUITION6 == 0,0,SchoolData$TUITION6 
 SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7 + SchoolData$FEE7 + 
             SchoolData$CHG4AY3 + SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 
-SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","WEBADDR","APPLCN","ADMSSN","ENRLT","FTEUG","FTEGD",
+SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","FTEUG","FTEGD",
                              "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
                              "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
                              "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
@@ -274,7 +293,7 @@ SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","WEBADDR","APPLCN"
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
@@ -290,6 +309,33 @@ OCCFcst1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/
                                     "Entry_Degree", "Experience", "OJT"),
                        col_types = c("text", "text", "text", "numeric", "numeric", "numeric", 
                                     "numeric", "numeric", "numeric", "numeric", "text", "text", "text"))
+
+#Create percentile rank of Occupation Growth Rates
+OCCFcst1 <- filter(OCCFcst1, MedWage > 0)
+OCCFcst1 <- OCCFcst1[order(-OCCFcst1$EmplyPC),]
+OCCFcst1$PCEmplyPC <- OCCFcst1$EmplyPC                #initialize new variable
+NumRow <- nrow(OCCFcst1)
+for(i in 1:NumRow) {
+  OCCFcst1$PCEmplyPC[i] <- perc.rank(OCCFcst1$EmplyPC, OCCFcst1$EmplyPC[i])
+}
+
+#Create percentile rank of Self-Employment Rate
+OCCFcst1 <- filter(OCCFcst1, SelfEmpl > 0)
+OCCFcst1 <- OCCFcst1[order(-OCCFcst1$SelfEmpl),]
+OCCFcst1$PCSelfEmpl <- OCCFcst1$SelfEmpl                #initialize new variable
+NumRow <- nrow(OCCFcst1)
+for(i in 1:NumRow) {
+  OCCFcst1$PCSelfEmpl[i] <- perc.rank(OCCFcst1$SelfEmpl, OCCFcst1$SelfEmpl[i])
+}
+
+#Create percentile rank of Median Wages
+OCCFcst1 <- filter(OCCFcst1, MedWage > 0)
+OCCFcst1 <- OCCFcst1[order(-OCCFcst1$MedWage),]
+OCCFcst1$PCMedWage <- OCCFcst1$MedWage                #initialize new variable
+NumRow <- nrow(OCCFcst1)
+for(i in 1:NumRow) {
+  OCCFcst1$PCMedWage[i] <- perc.rank(OCCFcst1$MedWage, OCCFcst1$MedWage[i])
+}
 
 #The following file only has detailed occupational codes. Summary codes are not included in forcast or quintile data
 #The source file requires manual selection of "duplicate" records in the table
@@ -345,7 +391,7 @@ OCC_Detail2 <- left_join(x = OCCCODE3, y = OCC_Detail1, by = "OCCCODE", all = TR
 OCC_Detail2$comment <- if_else(OCC_Detail2$"OCCCODE2010" != OCC_Detail2$OCCCODE, 
                               "Some missing data has been imputed", OCC_Detail2$comment <- "")
 
-OCC_Detail3 <- OCC_Detail2[ -c(1,2,4,5,21,22,23,24)]    # delete unused columns
+OCC_Detail3 <- OCC_Detail2[ -c(1,2,4,5,24,25,26,27)]    # delete unused columns
 OCC_Detail4 <- OCC_Detail3 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
 OCC_Detail5 <- OCC_Detail4 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 
@@ -391,6 +437,14 @@ OCC_Detail$X75p = as.integer(as.numeric(OCC_Detail$X75p)) #changes numeric colum
 OCC_Detail$X82p = as.integer(as.numeric(OCC_Detail$X82p)) #changes numeric column to integer
 OCC_Detail$X90p = as.integer(as.numeric(OCC_Detail$X90p)) #changes numeric column to integer
 
+#Create percentile rank of 17th percentile (starting) Wages
+#OCC_Detail <- filter(OCC_Detail, X17p > 0)
+OCC_Detail <- OCC_Detail[order(-OCC_Detail$X17p),]
+OCC_Detail$PCX17p <- OCC_Detail$X17p   #initialize new variable
+NumRow <- nrow(OCC_Detail)
+for(i in 1:NumRow) {
+  OCC_Detail$PCX17p[i] <- perc.rank(OCC_Detail$X17p, OCC_Detail$X17p[i])
+}
 
 # Generate total factors for salary forecast over time: Low, Med, Hi refers to competency level. Late is at retirement age
 # 
@@ -408,11 +462,12 @@ OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2018", "Emply2028",
                               "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                               "Entry_Code", "Entry_Degree", "Experience", 
                               "OJT", "comment", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
-                              "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF")]
+                              "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF", 
+                              "PCEmplyPC","PCSelfEmpl", "PCMedWage", "PCX17p")]
 OCC_Detail8 <- unique(OCC_Detail7)
 
 # Create Occupation "No Match" record
-OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"N/A","N/A","","","",0,0,0,0,0,0,0,0,0,0,0,0,0) 
+OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"N/A","N/A","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 OCC_Detail <- rbind(OCC_Detail8, OCCNull1, drop = FALSE)
 
 #Replace "NaN" elements with 0
@@ -439,9 +494,23 @@ OCC_CIP_CW$post <- substr(OCC_CIP_CW$OCCCODE_OLD, 3, 6)
 OCC_CIP_CW$OCCCODE <- paste0(OCC_CIP_CW$pre, "-", OCC_CIP_CW$post)
 OCC_CIP_CW <- OCC_CIP_CW[ -c(1,2,4,5,6,7)]  # removed unused columns
 
-
 # Merge CIP_Data file with the OCC <> CIP crosswalk file
 Backbone1 <- merge(x = OCC_Detail, y = OCC_CIP_CW, by="OCCCODE", all = TRUE)
+
+#Create MedWage by CIP-OCC Percentile Rank Combination ----
+OCC_CIP_CW <- Backbone1[,c("CIPCODE", "OCCCODE", "MedWage")]
+OCC_CIP_CW <- OCC_CIP_CW %>% drop_na()   #drop "NA" records
+OCC_CIP_CW <- OCC_CIP_CW[order(-OCC_CIP_CW$MedWage),]
+OCC_CIP_CW$PC_CIP_MedWage <- OCC_CIP_CW$MedWage                #initialize new variable
+NumRow <- nrow(OCC_CIP_CW)
+for(i in 1:NumRow) {
+  OCC_CIP_CW$PC_CIP_MedWage[i] <- perc.rank(OCC_CIP_CW$MedWage, OCC_CIP_CW$MedWage[i])
+}
+# save as RDS file
+saveRDS(OCC_CIP_CW, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/PC_OCC_CIP_Wage.rds")
+
+
+# Continue to build backbone
 Backbone1 <- merge(x = Backbone1, y =DegreeCrosswalk, by="Entry_Code", all = TRUE)
 
 Backbone2 <- merge(x = CIP_Data, y = OCC_CIP_CW, by="CIPCODE", all = TRUE)  # Merge to Add Entry_Code field
@@ -471,6 +540,14 @@ saveRDS(Backbone, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 
 #Backbone$Index <- rownames(Backbone) #Create index using Rownames will return rownumbers present in Dataset,df=DataFrame name.
 #Backbone$Index = as.numeric(as.character(Backbone$Index)) # change index from text to number
+
+#Household Income by Structure Table ----
+Lifestyle <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Lifestyle.xlsx", skip = 0)
+# Save RDS file
+saveRDS(Lifestyle, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Lifestyle.rds")
+
+
+
 
 # AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
 AltTitle0 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Alternate Titles.xlsx", skip = 1, col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
