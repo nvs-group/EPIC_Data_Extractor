@@ -304,7 +304,7 @@ saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 #Load OCC entry data table and keep only three columns to get Entry_Degree by OCCCODE
 #combine occupation data into a single file, name and set numeric columns, and save as an RDS file
 OCCFcst1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/occupation.xlsx", sheet = "Table 1.7", skip = 3,
-                       col_names = c("OCCNAME", "OCCCODE2010", "OCCTYPE", "Emply2018", "Emply2028", 
+                       col_names = c("OCCNAME", "OCCCODE2010", "OCCTYPE", "Emply2019", "Emply2029", 
                                     "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                                     "Entry_Degree", "Experience", "OJT"),
                        col_types = c("text", "text", "text", "numeric", "numeric", "numeric", 
@@ -346,7 +346,7 @@ OCCCODE2 <- rename(OCCCODE2, "OCCCODE" = "2018 SOC Code")  # rename "2018 SOC Co
 
 OCCCODE3 <- filter(OCCCODE2, Duplicate == "No")  #delete manually selected "duplicate" records 
 
-#convert SOC 2010 codes to SOC 2018 codes
+#convert SOC 2010 codes to SOC 2018 codes and update occ forcast with updated OCC Codes
 OCCFcst2 <- merge(OCCCODE3, OCCFcst1, by = "OCCCODE2010", all =FALSE)
 OCCFcst2 <- OCCFcst2 %>% filter(OCCTYPE %in% "Line item") #delete summary occupations, etc
 OCCFcst3 <- OCCFcst2[ -c(1,2,5,6)]    # delete unused columns including 2010 SOC codes and  names
@@ -358,7 +358,7 @@ OCCFcst <- unique(OCCFcst4)                 # delete duplicates
 
 
 # Load and clean quintile data
-OCCQint1 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/all_data_M_2019.xlsx", sheet = "All May 2019 Data",
+OCCQint1 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/all_data_M_2020.xlsx", sheet = "All May 2020 Data",
                        col_names = TRUE,
 #                      c("area", "area_title", "area_type", "naics", "naics_title", "i_group", "own_code", "occ_code", "occ_title", "o_group", 
 #                                    "tot_emp", "emp_prse", "jobs_1000", "loc_quotient", "pct_total", "h_mean", "a_mean", "mean_prse", 
@@ -546,7 +546,32 @@ Lifestyle <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master
 # Save RDS file
 saveRDS(Lifestyle, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Lifestyle.rds")
 
+# School offering analysis ----
+Offerings1 <- Backbone
+Offerings2 <- merge(x=Offerings1, y=Schools, by="UNITID", all = FALSE)
+Offerings3 <- Offerings2[ -c(7:48)]  # removed unused columns
+CIP_ListNew <- rename(CIP_List, CIPCODE = Codevalue)
+Offerings4 <- merge(x=Offerings3, y=CIP_ListNew, by="CIPCODE", all = FALSE)
+Offerings5 <- merge(x=Offerings4, y=OCC_Detail, by="OCCCODE", all = FALSE)
+Offerings5$EntryMatch <- if_else(Offerings5$Entry_Code == Offerings5$AWLEVEL,1,0)
+TotMedWage <- aggregate(cbind(MedWage)~(CIPCODE), data=Offerings5, FUN = mean)
+Offerings6 <- merge(x = Offerings5, y = TotMedWage, by="CIPCODE", all = FALSE)
+TotDegree <- aggregate(cbind(CTOTALT)~(UNITID), data=CIP_Data, FUN = sum)
+Offerings7 <- merge(x = Offerings6, y = TotDegree, by="UNITID", all = FALSE)
+Offerings8 <- filter(Offerings7, EntryMatch == 1 & Experience == "None")
+Offerings8 <- Offerings8[ c(1,2,4,5,6,7,39)]
+Offerings8 <- unique(Offerings8)
+Offerings8$Tot_Wages <- Offerings8$MedWage.y * Offerings8$CTOTALT.x
+TotWage <- aggregate(cbind(Tot_Wages)~(UNITID), data=Offerings8, FUN = sum)
+MatDegree <- aggregate(cbind(CTOTALT.x)~(UNITID), data=Offerings8, FUN = sum)
+Offerings9 <- merge(x = Offerings7, y = TotWage, by="UNITID", all = FALSE)
+Offerings9 <- merge(x = Offerings9, y = MatDegree, by="UNITID", all = FALSE)
+Offerings9 <- rename(Offerings9, TotDegrees = CTOTALT.y, MatDegrees = CTOTALT.x.y)
+Offerings9$PC_Match <- Offerings9$MatDegrees / Offerings9$TotDegrees
+Offerings10 <- merge(x = Offerings9, y = TotWage, by = "UNITID", all = TRUE)
+Offerings10$PerCapita <- Offerings10$Tot_Wages.y / Offerings10$MatDegrees
 
+write.csv(Offerings10, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Offerings.csv")
 
 
 # AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
