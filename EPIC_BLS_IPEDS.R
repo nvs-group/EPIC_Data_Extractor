@@ -78,13 +78,13 @@ saveRDS(OCCDescriptions, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Maste
 #Need latest Microsoft Access Database Engine 2010 Redistributable 64bit in order to use the channel function
 #The IPEDS data can be found at https://nces.ed.gov/ipeds/use-the-data/download-access-database
 #channela is the most recent "Final" IPEDS date. channelb is the most recent "Preliminary" IPEDS data
-channelb <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201819.accdb")
-channela <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201718.accdb")
+channelb <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201920.accdb")
+channela <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201819.accdb")
 
 
 # CIP List ***************Create full list of CIP codes and names *********** ----
 #pull full CIP code list from the IPEDS data
-CIP_List0 <- sqlQuery(channelb, "SELECT varTitle, varName, Codevalue, valueLabel FROM valuesets18 WHERE Codevalue Like '__.____'", as.is = TRUE) 
+CIP_List0 <- sqlQuery(channelb, "SELECT varTitle, varName, Codevalue, valueLabel FROM valuesets19 WHERE Codevalue Like '__.____'", as.is = TRUE) 
 CIP_List0 <- filter(CIP_List0, varTitle == "CIPCODE")
 CIP_List1 <- CIP_List0[-c(1,2)]
 
@@ -97,8 +97,8 @@ saveRDS(CIP_List, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 
 
 # CIP Data ************************* CREATE CIP DATA FILE **************************************** ----
-# import data table c2018_a (which includes completion information by institution) from IPEDS access database
-CIP_Data0 <- sqlQuery(channelb, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT, MAJORNUM FROM C2018_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
+# import data table c2019_a (which includes completion information by institution) from IPEDS access database
+CIP_Data0 <- sqlQuery(channelb, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT, MAJORNUM FROM C2019_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
 
 #combine total awards to include double majors as separate awards
 Major1 <- CIP_Data0 %>% filter(MAJORNUM ==1)  #select degrees awarded as first or primary major
@@ -150,23 +150,23 @@ saveRDS(CIP_Data, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 
 # Schools.rds ******************************** CREATE SCHOOL FILE ********************************** ----
 #Load data from latest "Preliminary" IPEDS files using "channelb"
-#When a new preliminary data file is released, all of the Access Tables year codes need to be updated below e.g. HD2018 >> HD2019, etc
-School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2018", as.is = TRUE ) 
-School2 <- sqlQuery(channelb, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
-School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
-School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
-School5 <- sqlQuery(channelb, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_18", as.is = TRUE ) 
-School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1", as.is = TRUE )
-School7 <- sqlQuery(channelb, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2018", as.is = TRUE )
+#When a new preliminary data file is released, all of the Access Tables year codes need to be updated below e.g. HD2019 >> HD2020, etc
+School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2019", as.is = TRUE ) 
+School2 <- sqlQuery(channelb, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2019", as.is = TRUE ) 
+School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2019_AY", as.is = TRUE )
+School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2019", as.is = TRUE ) 
+School5 <- sqlQuery(channelb, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_19", as.is = TRUE ) 
+School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1819_P1", as.is = TRUE )
+School7 <- sqlQuery(channelb, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2019", as.is = TRUE )
 
 #Load data from latest "Final" IPEDS files using "channela" 
-School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2017", as.is = TRUE ) 
-School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2017", as.is = TRUE ) 
-School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2017_AY", as.is = TRUE )
-School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2017", as.is = TRUE ) 
-School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_17", as.is = TRUE ) 
-School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1617_P1", as.is = TRUE )
-School7a <- sqlQuery(channela, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2017", as.is = TRUE )
+School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2018", as.is = TRUE ) 
+School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
+School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
+School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
+School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_18", as.is = TRUE ) 
+School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1", as.is = TRUE )
+School7a <- sqlQuery(channela, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2018", as.is = TRUE )
 
 #Merge earlier "Final" data with later "Preliminary" then use final data if no preliminary data exists
 School1 <- merge(x=School1, y=School1a, by="UNITID", all = TRUE)
@@ -320,7 +320,7 @@ for(i in 1:NumRow) {
 }
 
 #Create percentile rank of Self-Employment Rate
-OCCFcst1 <- filter(OCCFcst1, SelfEmpl > 0)
+#OCCFcst1 <- filter(OCCFcst1, SelfEmpl > 0)
 OCCFcst1 <- OCCFcst1[order(-OCCFcst1$SelfEmpl),]
 OCCFcst1$PCSelfEmpl <- OCCFcst1$SelfEmpl                #initialize new variable
 NumRow <- nrow(OCCFcst1)
@@ -358,22 +358,22 @@ OCCFcst <- unique(OCCFcst4)                 # delete duplicates
 
 
 # Load and clean quintile data
-OCCQint1 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/all_data_M_2020.xlsx", sheet = "All May 2020 Data",
+OCCQint1 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/all_data_M_2020.xlsx", sheet = "All May 2020 data",
                        col_names = TRUE,
-#                      c("area", "area_title", "area_type", "naics", "naics_title", "i_group", "own_code", "occ_code", "occ_title", "o_group", 
+#                      c("area", "area_title", "area_type", "prim_state", "naics", "naics_title", "i_group", "own_code", "occ_code", "occ_title", "o_group", 
 #                                    "tot_emp", "emp_prse", "jobs_1000", "loc_quotient", "pct_total", "h_mean", "a_mean", "mean_prse", 
 #                                    "h_pct10", "h_pct25", "h_pct50", "h_pct75", "h_pct90", "X10p", "X25p", "X50p", "X75p", "X90p", 
 #                                    "annual", "hourly"),
-                       col_types = c("text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "numeric", "numeric", "numeric", 
+                       col_types = c("text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "text", "numeric", "numeric", "numeric", 
                                      "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", 
                                      "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "text", "text"))
 
 #Filter file by area, naics, and o_group
-OCCQint2 <- OCCQint1 %>% filter(area_title %in% "U.S.")
-OCCQint3 <- OCCQint2 %>% filter(naics %in% "000000")
-OCCQint4 <- OCCQint3 %>% filter(o_group %in% "detailed")
-OCCQint5 <- OCCQint4[ -c(1,2,3,4,5,6,7,12,13,14,15,18)]  # removed unused columns
-OCCQint <- rename(OCCQint5, OCCCODE = occ_code)  # rename occ_code to OCCCODE in order to merge with OCCFcst
+OCCQint2 <- OCCQint1 %>% filter(AREA_TITLE %in% "U.S.")
+OCCQint3 <- OCCQint2 %>% filter(NAICS %in% "000000")
+OCCQint4 <- OCCQint3 %>% filter(O_GROUP %in% "detailed")
+OCCQint5 <- OCCQint4[ -c(1,2,3,4,5,6,7,8,13,14,15,16,19)]  # removed unused columns
+OCCQint <- rename(OCCQint5, OCCCODE = OCC_CODE)  # rename occ_code to OCCCODE in order to merge with OCCFcst
 
 # Merge forecast data using 2018 codes and salary quintile data
 OCC_Detail1 <- merge(x=OCCFcst, y=OCCQint, by="OCCCODE", all = TRUE)  #Merge OCC forecast & OCC salary data
@@ -382,7 +382,7 @@ OCC_Detail1 <- merge(x=OCCFcst, y=OCCQint, by="OCCCODE", all = TRUE)  #Merge OCC
 OCC_Detail1$comment <- ifelse(is.na(OCC_Detail1$OCCNAME), "Some missing data has been imputed", "")
 
 # combine 2018 OCCNAME and 2010 occ_title
-OCC_Detail1$OCCNAME <- ifelse(is.na(OCC_Detail1$OCCNAME), OCC_Detail1$occ_title, OCC_Detail1$OCCNAME)     
+OCC_Detail1$OCCNAME <- ifelse(is.na(OCC_Detail1$OCCNAME), OCC_Detail1$OCC_TITLE, OCC_Detail1$OCCNAME)     
 
 # combine the OCC_Detail file with the updated OCCCODES
 OCC_Detail2 <- left_join(x = OCCCODE3, y = OCC_Detail1, by = "OCCCODE", all = TRUE)
@@ -399,32 +399,33 @@ OCC_Detail6 <- OCC_Detail5 %>% mutate_if(is.character, ~replace(., is.na(.), 0))
 OCC_Detail <- filter(OCC_Detail6, OCCTYPE != "0") #delete records where OCCTYPE equals "0"
 
 # Set comment field to show salary data has been imputed
-OCC_Detail$comment <- if_else(OCC_Detail$a_pct90 == "0" & OCC_Detail$MedWage != "0", 
+OCC_Detail$comment <- if_else(OCC_Detail$A_PCT90 == "0" & OCC_Detail$MedWage != "0", 
                               "Some missing data has been imputed", OCC_Detail$comment <- "")
 
 # When no quintile data is available, build quintile data from the Median salary in the Forecast data file
-OCC_Detail$a_pct90 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
-                              OCC_Detail$MedWage * 1.5342, OCC_Detail$a_pct90)
-OCC_Detail$a_pct75 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
-                              OCC_Detail$MedWage * 1.27, OCC_Detail$a_pct75)
-OCC_Detail$a_median <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
-                                OCC_Detail$MedWage * 1, OCC_Detail$a_median)
-OCC_Detail$a_pct25 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
-                              OCC_Detail$MedWage * .7825, OCC_Detail$a_pct25)
-OCC_Detail$a_pct10 <- if_else(OCC_Detail$hourly == "0" & OCC_Detail$h_pct10 == "0" & OCC_Detail$MedWage != "0", 
-                              OCC_Detail$MedWage * .628, OCC_Detail$a_pct10)
+# factors are derived from the matrix below
+OCC_Detail$A_PCT90 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
+                              OCC_Detail$MedWage * 2.528, OCC_Detail$A_PCT90)             # difference between MEDIAN and 90TH percentile
+OCC_Detail$A_PCT75 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
+                              OCC_Detail$MedWage * 1.607, OCC_Detail$A_PCT75)               # difference between MEDIAN and 75TH percentile
+OCC_Detail$A_MEDIAN <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
+                                OCC_Detail$MedWage * 1, OCC_Detail$A_MEDIAN)               # difference between MEDIAN and 50TH percentile
+OCC_Detail$A_PCT25 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
+                              OCC_Detail$MedWage * .692, OCC_Detail$A_PCT25)              # difference between MEDIAN and 25TH percentile
+OCC_Detail$A_PCT10 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
+                              OCC_Detail$MedWage * .544, OCC_Detail$A_PCT10)               # difference between MEDIAN and 10TH percentile
 
 # Fill in missing salary data using average difference between qintiles for "national "U.S." dataset NAICS "000000"
-# The source of this data is "all_data_M_2019.xlsx", sheet = "All May 2019 Data"
+# The source of this data is "all_data_M_2020.xlsx", sheet = "All May 2020 Data" US total OCC_CODE 00-0000
 #a_10pct a_25pct a_50pct a_75pct a_90pct
-# 33,582	41,833	53,479	67,908	82,019
-#          1.246	 1.278	 1.270	 1.208
+# 22,810	29,020	41,950	67,410	106,050
+#          1.272	 1.446	 1.607	 1.573    (This is the increase factor between each percentile)
 
-OCC_Detail$X10p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct10 * 2080, if_else(OCC_Detail$annual == "TRUE", OCC_Detail$a_pct10, OCC_Detail$a_pct10))
-OCC_Detail$X25p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct25 * 2080, if_else(OCC_Detail$a_pct25 == 0, OCC_Detail$X10p * 1.246,OCC_Detail$a_pct25))
-OCC_Detail$X50p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_median * 2080, if_else(OCC_Detail$a_median == 0, OCC_Detail$X25p * 1.278,OCC_Detail$a_median))
-OCC_Detail$X75p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct75 * 2080, if_else(OCC_Detail$a_pct75 == 0, OCC_Detail$X50p * 1.27,OCC_Detail$a_pct75))
-OCC_Detail$X90p <- if_else(OCC_Detail$hourly == "TRUE", OCC_Detail$h_pct90 * 2080, if_else(OCC_Detail$a_pct90 == 0, OCC_Detail$X75p * 1.208,OCC_Detail$a_pct90))
+OCC_Detail$X10p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_PCT10 * 2080, if_else(OCC_Detail$ANNUAL == "TRUE", OCC_Detail$A_PCT10, OCC_Detail$A_PCT10))
+OCC_Detail$X25p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_PCT25 * 2080, if_else(OCC_Detail$A_PCT25 == 0, OCC_Detail$X10p * 1.246,OCC_Detail$A_PCT25))
+OCC_Detail$X50p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_MEDIAN * 2080, if_else(OCC_Detail$A_MEDIAN == 0, OCC_Detail$X25p * 1.278,OCC_Detail$A_MEDIAN))
+OCC_Detail$X75p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_PCT75 * 2080, if_else(OCC_Detail$A_PCT75 == 0, OCC_Detail$X50p * 1.27,OCC_Detail$A_PCT75))
+OCC_Detail$X90p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_PCT90 * 2080, if_else(OCC_Detail$A_PCT90 == 0, OCC_Detail$X75p * 1.208,OCC_Detail$A_PCT90))
 OCC_Detail$X17p <- (OCC_Detail$X10p + OCC_Detail$X25p)/2
 OCC_Detail$X82p <- (OCC_Detail$X75p + OCC_Detail$X90p)/2
 
@@ -447,18 +448,18 @@ for(i in 1:NumRow) {
 }
 
 # Generate total factors for salary forecast over time: Low, Med, Hi refers to competency level. Late is at retirement age
-# 
-OCC_Detail$LowLate <- OCC_Detail$X10p * 2.51872923999183
-OCC_Detail$MedLate <- OCC_Detail$X17p * 2.51872923999183
-OCC_Detail$HiLate <- OCC_Detail$X25p * 2.51872923999183
+# See file "C:\Users\lccha\OneDrive\NVS\NVS_EPIC\Source Data\Salary_Expense_Benchmark_Engine.xlsx" in tab "Wages by Age" cell AX10
+OCC_Detail$LowLate <- OCC_Detail$X10p * 1.750698045
+OCC_Detail$MedLate <- OCC_Detail$X17p * 1.750698045
+OCC_Detail$HiLate <- OCC_Detail$X25p * 1.750698045
 
 # Generate annualized factors for salary increases over 50 years
-OCC_Detail$LowOccF <- (OCC_Detail$X75p/OCC_Detail$LowLate)^(1/50)
-OCC_Detail$MedOccF <- (OCC_Detail$X82p/OCC_Detail$MedLate)^(1/50)
-OCC_Detail$HiOccF <- (OCC_Detail$X90p/OCC_Detail$HiLate)^(1/50)
+OCC_Detail$LowOccF <- (OCC_Detail$X75p/OCC_Detail$LowLate)^(1/40)
+OCC_Detail$MedOccF <- (OCC_Detail$X82p/OCC_Detail$MedLate)^(1/40)
+OCC_Detail$HiOccF <- (OCC_Detail$X90p/OCC_Detail$HiLate)^(1/40)
 
 # set column headings for the OCC_Detail file
-OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2018", "Emply2028", 
+OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2019", "Emply2029", 
                               "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                               "Entry_Code", "Entry_Degree", "Experience", 
                               "OJT", "comment", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
@@ -548,7 +549,7 @@ saveRDS(Lifestyle, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data
 
 # School offering analysis ----
 Offerings1 <- Backbone
-Offerings2 <- merge(x=Offerings1, y=Schools, by="UNITID", all = FALSE)
+Offerings2 <- merge(x=Offerings1, y=SchoolData, by="UNITID", all = FALSE)
 Offerings3 <- Offerings2[ -c(7:48)]  # removed unused columns
 CIP_ListNew <- rename(CIP_List, CIPCODE = Codevalue)
 Offerings4 <- merge(x=Offerings3, y=CIP_ListNew, by="CIPCODE", all = FALSE)
@@ -573,6 +574,8 @@ Offerings10$PerCapita <- Offerings10$Tot_Wages.y / Offerings10$MatDegrees
 
 write.csv(Offerings10, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Offerings.csv")
 
+Offerings11 <- Offerings10[-c(1,5,6,40:45)]
+Offerings11 <- unique(Offerings11)
 
 # AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
 AltTitle0 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Alternate Titles.xlsx", skip = 1, col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
