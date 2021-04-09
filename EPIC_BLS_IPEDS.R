@@ -303,56 +303,31 @@ saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 #combine occupation data into a single file, name and set numeric columns, and save as an RDS file
 #Load OCC entry data table and keep only three columns to get Entry_Degree by OCCCODE
 #combine occupation data into a single file, name and set numeric columns, and save as an RDS file
-OCCFcst1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/occupation.xlsx", sheet = "Table 1.7", skip = 3,
-                       col_names = c("OCCNAME", "OCCCODE2010", "OCCTYPE", "Emply2019", "Emply2029", 
+OCC_Detail7 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/occupation.xlsx", sheet = "Table 1.7", skip = 3,
+                       col_names = c("OCCNAME", "OCCCODE2018", "OCCTYPE", "Emply2019", "Emply2029", 
                                     "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                                     "Entry_Degree", "Experience", "OJT"),
                        col_types = c("text", "text", "text", "numeric", "numeric", "numeric", 
                                     "numeric", "numeric", "numeric", "numeric", "text", "text", "text"))
 
-#Create percentile rank of Occupation Growth Rates
-OCCFcst1 <- filter(OCCFcst1, MedWage > 0)
-OCCFcst1 <- OCCFcst1[order(-OCCFcst1$EmplyPC),]
-OCCFcst1$PCEmplyPC <- OCCFcst1$EmplyPC                #initialize new variable
-NumRow <- nrow(OCCFcst1)
-for(i in 1:NumRow) {
-  OCCFcst1$PCEmplyPC[i] <- perc.rank(OCCFcst1$EmplyPC, OCCFcst1$EmplyPC[i])
-}
-
-#Create percentile rank of Self-Employment Rate
-#OCCFcst1 <- filter(OCCFcst1, SelfEmpl > 0)
-OCCFcst1 <- OCCFcst1[order(-OCCFcst1$SelfEmpl),]
-OCCFcst1$PCSelfEmpl <- OCCFcst1$SelfEmpl                #initialize new variable
-NumRow <- nrow(OCCFcst1)
-for(i in 1:NumRow) {
-  OCCFcst1$PCSelfEmpl[i] <- perc.rank(OCCFcst1$SelfEmpl, OCCFcst1$SelfEmpl[i])
-}
-
-#Create percentile rank of Median Wages
-OCCFcst1 <- filter(OCCFcst1, MedWage > 0)
-OCCFcst1 <- OCCFcst1[order(-OCCFcst1$MedWage),]
-OCCFcst1$PCMedWage <- OCCFcst1$MedWage                #initialize new variable
-NumRow <- nrow(OCCFcst1)
-for(i in 1:NumRow) {
-  OCCFcst1$PCMedWage[i] <- perc.rank(OCCFcst1$MedWage, OCCFcst1$MedWage[i])
-}
 
 #The following file only has detailed occupational codes. Summary codes are not included in forcast or quintile data
 #The source file requires manual selection of "duplicate" records in the table
 OCCCODE1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/soc_2010_to_2018_crosswalk.xlsx", 
                        skip = 8) #This file will need to be replaced once the forecast info is available by the 2018 SOC codes
 OCCCODE2 <- rename(OCCCODE1, "OCCCODE2010" = "2010 SOC Code")  # rename "2010 SOC Code" to "OCCCODE2010" 
-OCCCODE2 <- rename(OCCCODE2, "OCCCODE" = "2018 SOC Code")  # rename "2018 SOC Code" to "OCCCODE" 
+OCCCODE2 <- rename(OCCCODE2, "OCCCODE2018" = "2018 SOC Code")  # rename "2018 SOC Code" to "OCCCODE" 
 
-OCCCODE3 <- filter(OCCCODE2, Duplicate == "No")  #delete manually selected "duplicate" records 
+OCCCODE3 <- filter(OCCCODE2, Duplicate == "No")  #delete manually selected "duplicate" records
 
 #convert SOC 2010 codes to SOC 2018 codes and update occ forcast with updated OCC Codes
-OCCFcst2 <- merge(OCCCODE3, OCCFcst1, by = "OCCCODE2010", all =FALSE)
+OCCFcst2 <- merge(OCCCODE3, OCC_Detail7, by = "OCCCODE2018", all = TRUE)
 OCCFcst2 <- OCCFcst2 %>% filter(OCCTYPE %in% "Line item") #delete summary occupations, etc
-OCCFcst3 <- OCCFcst2[ -c(1,2,5,6)]    # delete unused columns including 2010 SOC codes and  names
-OCCFcst3 <- rename(OCCFcst3, "OCCNAME" = "soc_2010_to_2018_crosswalk")  # rename "soc_2010_to_2018_crosswalk" to "OCCNAME" in order to merge with OCCFcst
-OCCFcst4 <- merge(x = OCCFcst3, y = DegreeCrosswalk, by="Entry_Degree", all = FALSE)  # add "Entry_Code" to dataframe
+OCCFcst3 <- OCCFcst2[ -c(2,3,4,5)]    # delete unused columns including 2010 SOC codes and  names
+OCCFcst3 <- rename(OCCFcst3, "OCCCODE" = "OCCCODE2018")  # rename "OCCCODE2018" to "OCCCODE" in order to merge with OCCFcst
+OCCFcst4 <- merge(x = OCCFcst3, y = DegreeCrosswalk, by="Entry_Degree", all = TRUE)  # add "Entry_Code" to dataframe
 OCCFcst4$Entry_Code <- as.character(OCCFcst4$Entry_Code)  #Change Entry_Code from Integer to Character
+OCCFcst4 <- OCCFcst4[ -c(17,19:22)]    # delete unused columns 
 
 OCCFcst <- unique(OCCFcst4)                 # delete duplicates
 
@@ -377,43 +352,27 @@ OCCQint <- rename(OCCQint5, OCCCODE = OCC_CODE)  # rename occ_code to OCCCODE in
 
 # Merge forecast data using 2018 codes and salary quintile data
 OCC_Detail1 <- merge(x=OCCFcst, y=OCCQint, by="OCCCODE", all = TRUE)  #Merge OCC forecast & OCC salary data
-
-# Insert imputed data comment where OCC Names do not match 
-OCC_Detail1$comment <- ifelse(is.na(OCC_Detail1$OCCNAME), "Some missing data has been imputed", "")
-
-# combine 2018 OCCNAME and 2010 occ_title
-OCC_Detail1$OCCNAME <- ifelse(is.na(OCC_Detail1$OCCNAME), OCC_Detail1$OCC_TITLE, OCC_Detail1$OCCNAME)     
-
-# combine the OCC_Detail file with the updated OCCCODES
-OCC_Detail2 <- left_join(x = OCCCODE3, y = OCC_Detail1, by = "OCCCODE", all = TRUE)
-
-# add comment for those OCCCODEs that have been updated
-OCC_Detail2$comment <- if_else(OCC_Detail2$"OCCCODE2010" != OCC_Detail2$OCCCODE, 
-                              "Some missing data has been imputed", OCC_Detail2$comment <- "")
-
-OCC_Detail3 <- OCC_Detail2[ -c(1,2,4,5,24,25,26,27)]    # delete unused columns
-OCC_Detail4 <- OCC_Detail3 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
-OCC_Detail5 <- OCC_Detail4 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-
-OCC_Detail6 <- OCC_Detail5 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
-OCC_Detail <- filter(OCC_Detail6, OCCTYPE != "0") #delete records where OCCTYPE equals "0"
+OCC_Detail2 <- OCC_Detail1 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCC_Detail3 <- OCC_Detail2 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCC_Detail4<- OCC_Detail3 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 # Set comment field to show salary data has been imputed
-OCC_Detail$comment <- if_else(OCC_Detail$A_PCT90 == "0" & OCC_Detail$MedWage != "0", 
-                              "Some missing data has been imputed", OCC_Detail$comment <- "")
+OCC_Detail4$comment <- if_else(OCC_Detail4$A_PCT90 == "0" & OCC_Detail4$MedWage != "0", 
+                              "Some missing data has been imputed", OCC_Detail4$comment <- "")
 
 # When no quintile data is available, build quintile data from the Median salary in the Forecast data file
 # factors are derived from the matrix below
-OCC_Detail$A_PCT90 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
-                              OCC_Detail$MedWage * 2.528, OCC_Detail$A_PCT90)             # difference between MEDIAN and 90TH percentile
-OCC_Detail$A_PCT75 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
-                              OCC_Detail$MedWage * 1.607, OCC_Detail$A_PCT75)               # difference between MEDIAN and 75TH percentile
-OCC_Detail$A_MEDIAN <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
-                                OCC_Detail$MedWage * 1, OCC_Detail$A_MEDIAN)               # difference between MEDIAN and 50TH percentile
-OCC_Detail$A_PCT25 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
-                              OCC_Detail$MedWage * .692, OCC_Detail$A_PCT25)              # difference between MEDIAN and 25TH percentile
-OCC_Detail$A_PCT10 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "0" & OCC_Detail$MedWage != "0", 
-                              OCC_Detail$MedWage * .544, OCC_Detail$A_PCT10)               # difference between MEDIAN and 10TH percentile
+OCC_Detail4$A_PCT90 <- if_else(OCC_Detail4$HOURLY == "0" & OCC_Detail4$H_PCT10 == "0" & OCC_Detail4$MedWage != "0", 
+                              OCC_Detail4$MedWage * 2.528, OCC_Detail4$A_PCT90)             # difference between MEDIAN and 90TH percentile
+OCC_Detail4$A_PCT75 <- if_else(OCC_Detail4$HOURLY == "0" & OCC_Detail4$H_PCT10 == "0" & OCC_Detail4$MedWage != "0", 
+                              OCC_Detail4$MedWage * 1.607, OCC_Detail4$A_PCT75)               # difference between MEDIAN and 75TH percentile
+OCC_Detail4$A_MEDIAN <- if_else(OCC_Detail4$HOURLY == "0" & OCC_Detail4$H_PCT10 == "0" & OCC_Detail4$MedWage != "0", 
+                                OCC_Detail4$MedWage * 1, OCC_Detail4$A_MEDIAN)               # difference between MEDIAN and 50TH percentile
+OCC_Detail4$A_PCT25 <- if_else(OCC_Detail4$HOURLY == "0" & OCC_Detail4$H_PCT10 == "0" & OCC_Detail4$MedWage != "0", 
+                              OCC_Detail4$MedWage * .692, OCC_Detail4$A_PCT25)              # difference between MEDIAN and 25TH percentile
+OCC_Detail4$A_PCT10 <- if_else(OCC_Detail4$HOURLY == "0" & OCC_Detail4$H_PCT10 == "0" & OCC_Detail4$MedWage != "0", 
+                              OCC_Detail4$MedWage * .544, OCC_Detail4$A_PCT10)               # difference between MEDIAN and 10TH percentile
+OCC_Detail5 <- OCC_Detail4
 
 # Fill in missing salary data using average difference between qintiles for "national "U.S." dataset NAICS "000000"
 # The source of this data is "all_data_M_2020.xlsx", sheet = "All May 2020 Data" US total OCC_CODE 00-0000
@@ -421,55 +380,82 @@ OCC_Detail$A_PCT10 <- if_else(OCC_Detail$HOURLY == "0" & OCC_Detail$H_PCT10 == "
 # 22,810	29,020	41,950	67,410	106,050
 #          1.272	 1.446	 1.607	 1.573    (This is the increase factor between each percentile)
 
-OCC_Detail$X10p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_PCT10 * 2080, if_else(OCC_Detail$ANNUAL == "TRUE", OCC_Detail$A_PCT10, OCC_Detail$A_PCT10))
-OCC_Detail$X25p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_PCT25 * 2080, if_else(OCC_Detail$A_PCT25 == 0, OCC_Detail$X10p * 1.246,OCC_Detail$A_PCT25))
-OCC_Detail$X50p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_MEDIAN * 2080, if_else(OCC_Detail$A_MEDIAN == 0, OCC_Detail$X25p * 1.278,OCC_Detail$A_MEDIAN))
-OCC_Detail$X75p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_PCT75 * 2080, if_else(OCC_Detail$A_PCT75 == 0, OCC_Detail$X50p * 1.27,OCC_Detail$A_PCT75))
-OCC_Detail$X90p <- if_else(OCC_Detail$HOURLY == "TRUE", OCC_Detail$H_PCT90 * 2080, if_else(OCC_Detail$A_PCT90 == 0, OCC_Detail$X75p * 1.208,OCC_Detail$A_PCT90))
-OCC_Detail$X17p <- (OCC_Detail$X10p + OCC_Detail$X25p)/2
-OCC_Detail$X82p <- (OCC_Detail$X75p + OCC_Detail$X90p)/2
+OCC_Detail5$X10p <- if_else(OCC_Detail5$HOURLY == "TRUE", OCC_Detail5$H_PCT10 * 2080, if_else(OCC_Detail5$ANNUAL == "TRUE", OCC_Detail5$A_PCT10, OCC_Detail5$A_PCT10))
+OCC_Detail5$X25p <- if_else(OCC_Detail5$HOURLY == "TRUE", OCC_Detail5$H_PCT25 * 2080, if_else(OCC_Detail5$A_PCT25 == 0, OCC_Detail5$X10p * 1.246,OCC_Detail5$A_PCT25))
+OCC_Detail5$X50p <- if_else(OCC_Detail5$HOURLY == "TRUE", OCC_Detail5$H_MEDIAN * 2080, if_else(OCC_Detail5$A_MEDIAN == 0, OCC_Detail5$X25p * 1.278,OCC_Detail5$A_MEDIAN))
+OCC_Detail5$X75p <- if_else(OCC_Detail5$HOURLY == "TRUE", OCC_Detail5$H_PCT75 * 2080, if_else(OCC_Detail5$A_PCT75 == 0, OCC_Detail5$X50p * 1.27,OCC_Detail5$A_PCT75))
+OCC_Detail5$X90p <- if_else(OCC_Detail5$HOURLY == "TRUE", OCC_Detail5$H_PCT90 * 2080, if_else(OCC_Detail5$A_PCT90 == 0, OCC_Detail5$X75p * 1.208,OCC_Detail5$A_PCT90))
+OCC_Detail5$X17p <- (OCC_Detail5$X10p + OCC_Detail5$X25p)/2
+OCC_Detail5$X82p <- (OCC_Detail5$X75p + OCC_Detail5$X90p)/2
 
 #set all salary data to integer datatype
-OCC_Detail$X10p = as.integer(as.numeric(OCC_Detail$X10p)) #changes numeric column to integer
-OCC_Detail$X17p = as.integer(as.numeric(OCC_Detail$X17p)) #changes numeric column to integer
-OCC_Detail$X25p = as.integer(as.numeric(OCC_Detail$X25p)) #changes numeric column to integer
-OCC_Detail$X50p = as.integer(as.numeric(OCC_Detail$X50p)) #changes numeric column to integer
-OCC_Detail$X75p = as.integer(as.numeric(OCC_Detail$X75p)) #changes numeric column to integer
-OCC_Detail$X82p = as.integer(as.numeric(OCC_Detail$X82p)) #changes numeric column to integer
-OCC_Detail$X90p = as.integer(as.numeric(OCC_Detail$X90p)) #changes numeric column to integer
+OCC_Detail5$X10p = as.integer(as.numeric(OCC_Detail5$X10p)) #changes numeric column to integer
+OCC_Detail5$X17p = as.integer(as.numeric(OCC_Detail5$X17p)) #changes numeric column to integer
+OCC_Detail5$X25p = as.integer(as.numeric(OCC_Detail5$X25p)) #changes numeric column to integer
+OCC_Detail5$X50p = as.integer(as.numeric(OCC_Detail5$X50p)) #changes numeric column to integer
+OCC_Detail5$X75p = as.integer(as.numeric(OCC_Detail5$X75p)) #changes numeric column to integer
+OCC_Detail5$X82p = as.integer(as.numeric(OCC_Detail5$X82p)) #changes numeric column to integer
+OCC_Detail5$X90p = as.integer(as.numeric(OCC_Detail5$X90p)) #changes numeric column to integer
+OCC_Detail6<- OCC_Detail5
 
 #Create percentile rank of 17th percentile (starting) Wages
-#OCC_Detail <- filter(OCC_Detail, X17p > 0)
-OCC_Detail <- OCC_Detail[order(-OCC_Detail$X17p),]
-OCC_Detail$PCX17p <- OCC_Detail$X17p   #initialize new variable
-NumRow <- nrow(OCC_Detail)
+#OCC_Detail6 <- filter(OCC_Detail6, X17p > 0)
+OCC_Detail6 <- OCC_Detail6[order(-OCC_Detail6$X17p),]
+OCC_Detail6$PCX17p <- OCC_Detail6$X17p   #initialize new variable
+NumRow <- nrow(OCC_Detail6)
 for(i in 1:NumRow) {
-  OCC_Detail$PCX17p[i] <- perc.rank(OCC_Detail$X17p, OCC_Detail$X17p[i])
+  OCC_Detail6$PCX17p[i] <- perc.rank(OCC_Detail6$X17p, OCC_Detail6$X17p[i])
 }
 
 # Generate total factors for salary forecast over time: Low, Med, Hi refers to competency level. Late is at retirement age
 # See file "C:\Users\lccha\OneDrive\NVS\NVS_EPIC\Source Data\Salary_Expense_Benchmark_Engine.xlsx" in tab "Wages by Age" cell AX10
-OCC_Detail$LowLate <- OCC_Detail$X10p * 1.750698045
-OCC_Detail$MedLate <- OCC_Detail$X17p * 1.750698045
-OCC_Detail$HiLate <- OCC_Detail$X25p * 1.750698045
+OCC_Detail6$LowLate <- OCC_Detail6$X10p * 1.750698045
+OCC_Detail6$MedLate <- OCC_Detail6$X17p * 1.750698045
+OCC_Detail6$HiLate <- OCC_Detail6$X25p * 1.750698045
 
 # Generate annualized factors for salary increases over 50 years
-OCC_Detail$LowOccF <- (OCC_Detail$X75p/OCC_Detail$LowLate)^(1/40)
-OCC_Detail$MedOccF <- (OCC_Detail$X82p/OCC_Detail$MedLate)^(1/40)
-OCC_Detail$HiOccF <- (OCC_Detail$X90p/OCC_Detail$HiLate)^(1/40)
+OCC_Detail6$LowOccF <- (OCC_Detail6$X75p/OCC_Detail6$LowLate)^(1/40)
+OCC_Detail6$MedOccF <- (OCC_Detail6$X82p/OCC_Detail6$MedLate)^(1/40)
+OCC_Detail6$HiOccF <- (OCC_Detail6$X90p/OCC_Detail6$HiLate)^(1/40)
 
 # set column headings for the OCC_Detail file
-OCC_Detail7 <- OCC_Detail[,c ("OCCNAME", "OCCCODE", "Emply2019", "Emply2029", 
+OCC_Detail6 <- OCC_Detail6[,c ("OCCNAME", "OCCCODE", "Emply2019", "Emply2029", 
                               "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                               "Entry_Code", "Entry_Degree", "Experience", 
                               "OJT", "comment", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
-                              "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF", 
-                              "PCEmplyPC","PCSelfEmpl", "PCMedWage", "PCX17p")]
-OCC_Detail8 <- unique(OCC_Detail7)
+                              "LowLate", "MedLate", "HiLate", "LowOccF", "MedOccF", "HiOccF")]
+OCC_Detail7 <- unique(OCC_Detail6)
+#Create percentile rank of Occupation Growth Rates
+#OCC_Detail7 <- filter(OCC_Detail7, MedWage > 0) This drops occupations like anesthesiologist
+OCC_Detail7 <- OCC_Detail7[order(-OCC_Detail7$EmplyPC),]
+OCC_Detail7$PCEmplyPC <- OCC_Detail7$EmplyPC                #initialize new variable
+NumRow <- nrow(OCC_Detail7)
+for(i in 1:NumRow) {
+  OCC_Detail7$PCEmplyPC[i] <- perc.rank(OCC_Detail7$EmplyPC, OCC_Detail7$EmplyPC[i])
+}
+
+#Create percentile rank of Self-Employment Rate
+
+OCC_Detail7$PCSelfEmpl <- OCC_Detail7$SelfEmpl                #initialize new variable
+OCC_Detail7 <- OCC_Detail7 %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCC_Detail7 <- OCC_Detail7[order(-OCC_Detail7$SelfEmpl),]              
+NumRow <- nrow(OCC_Detail7)
+for(i in 1:NumRow) {
+  OCC_Detail7$PCSelfEmpl[i] <- perc.rank(OCC_Detail7$SelfEmpl, OCC_Detail7$SelfEmpl[i])
+}
+
+#Create percentile rank of Median Wages
+OCC_Detail7 <- OCC_Detail7[order(-OCC_Detail7$X50p),]
+OCC_Detail7$PCMedWage <- OCC_Detail7$X50p                #initialize new variable
+NumRow <- nrow(OCC_Detail7)
+for(i in 1:NumRow) {
+  OCC_Detail7$PCMedWage[i] <- perc.rank(OCC_Detail7$X50p, OCC_Detail7$X50p[i])
+}
+
 
 # Create Occupation "No Match" record
 OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"N/A","N/A","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
-OCC_Detail <- rbind(OCC_Detail8, OCCNull1, drop = FALSE)
+OCC_Detail <- rbind(OCC_Detail7, OCCNull1, drop = FALSE)
 
 #Replace "NaN" elements with 0
 OCC_Detail$LowOccF <- sub("NaN",0,OCC_Detail$LowOccF)  #replace "NaN" with "0"
@@ -559,23 +545,36 @@ TotMedWage <- aggregate(cbind(MedWage)~(CIPCODE), data=Offerings5, FUN = mean)
 Offerings6 <- merge(x = Offerings5, y = TotMedWage, by="CIPCODE", all = FALSE)
 TotDegree <- aggregate(cbind(CTOTALT)~(UNITID), data=CIP_Data, FUN = sum)
 Offerings7 <- merge(x = Offerings6, y = TotDegree, by="UNITID", all = FALSE)
+Offerings7$Tot_Wages <- Offerings7$MedWage.y * Offerings7$CTOTALT.x
 Offerings8 <- filter(Offerings7, EntryMatch == 1 & Experience == "None")
-Offerings8 <- Offerings8[ c(1,2,4,5,6,7,39)]
+Offerings8 <- Offerings8[ c(1,2,4,5,6,7,37,38,39,40)]
 Offerings8 <- unique(Offerings8)
-Offerings8$Tot_Wages <- Offerings8$MedWage.y * Offerings8$CTOTALT.x
 TotWage <- aggregate(cbind(Tot_Wages)~(UNITID), data=Offerings8, FUN = sum)
 MatDegree <- aggregate(cbind(CTOTALT.x)~(UNITID), data=Offerings8, FUN = sum)
+
+
 Offerings9 <- merge(x = Offerings7, y = TotWage, by="UNITID", all = FALSE)
 Offerings9 <- merge(x = Offerings9, y = MatDegree, by="UNITID", all = FALSE)
 Offerings9 <- rename(Offerings9, TotDegrees = CTOTALT.y, MatDegrees = CTOTALT.x.y)
 Offerings9$PC_Match <- Offerings9$MatDegrees / Offerings9$TotDegrees
-Offerings10 <- merge(x = Offerings9, y = TotWage, by = "UNITID", all = TRUE)
-Offerings10$PerCapita <- Offerings10$Tot_Wages.y / Offerings10$MatDegrees
+#Offerings10 <- merge(x = Offerings9, y = TotWage, by = "UNITID", all = TRUE)
+Offerings9$PerCapita <- Offerings9$Tot_Wages.y / Offerings9$MatDegrees
+Offerings10 <- Offerings9
 
+#Individual school information
 write.csv(Offerings10, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Offerings.csv")
 
-Offerings11 <- Offerings10[-c(1,5,6,40:45)]
+#Individual CIP information across all schools
+Offerings11 <- Offerings10[-c(1,6,39:44)]
 Offerings11 <- unique(Offerings11)
+
+write.csv(Offerings11, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/AllOfferings.csv")
+
+#   ********** Text Data Quality ************************ ----
+# Check "Offerings.rds" file for the following:
+# make sure "Middle School" teachers exists and have data
+# make sure OCCCODE 29-12XX shows a variety of medical professions
+# Check also OOCODEs 11-2030, 25-2022, 29-1211
 
 # AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
 AltTitle0 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Alternate Titles.xlsx", skip = 1, col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
