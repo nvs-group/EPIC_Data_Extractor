@@ -559,7 +559,8 @@ Offerings9 <- rename(Offerings9, TotDegrees = CTOTALT.y, MatDegrees = CTOTALT.x.
 Offerings9$PC_Match <- Offerings9$MatDegrees / Offerings9$TotDegrees
 #Offerings10 <- merge(x = Offerings9, y = TotWage, by = "UNITID", all = TRUE)
 Offerings9$PerCapita <- Offerings9$Tot_Wages.y / Offerings9$MatDegrees
-Offerings10 <- Offerings9
+Offerings10 <- SchoolData[c(1,10,11)]
+Offerings10 <- merge (x = Offerings9, y = Offerings10, by = "UNITID", all = TRUE)
 
 #Individual school information
 write.csv(Offerings10, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Offerings.csv")
