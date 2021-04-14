@@ -20,6 +20,7 @@ library(gmailr)
 library(shinyBS)
 library(readxl)
 library(pKSEA)
+library(write.xlsx)
 
 # Tools ********************************* Tools for use as needed ********************* ----
 #percentile rank
@@ -472,15 +473,21 @@ saveRDS(OCC_Detail, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 # Backbone.rds ******************* CREATE BACKBONE FILE ************************************ ----
 
 #Read CIP OCC crosswalk file, keep character format for codes, includes "no match" information
-OCC_CIP_CW <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP2010xSOC2018.xlsx",
-                         skip = 1, col_names = c("Col1", "Col2", "CIPCODE", "Col4", "OCCCODE_OLD"))
+OCC_CIP_CW1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP2020_SOC2018_Crosswalk.xlsx",
+                         sheet = "CIP-SOC", col_names = TRUE)
 
 #Insert a dash "-" into the OCCCODE 
-OCC_CIP_CW$pre <- substr(OCC_CIP_CW$OCCCODE_OLD, 1, 2)
-OCC_CIP_CW$post <- substr(OCC_CIP_CW$OCCCODE_OLD, 3, 6)
-OCC_CIP_CW$OCCCODE <- paste0(OCC_CIP_CW$pre, "-", OCC_CIP_CW$post)
-OCC_CIP_CW <- OCC_CIP_CW[ -c(1,2,4,5,6,7)]  # removed unused columns
+#OCC_CIP_CW$pre <- substr(OCC_CIP_CW$OCCCODE_OLD, 1, 2)
+#OCC_CIP_CW$post <- substr(OCC_CIP_CW$OCCCODE_OLD, 3, 6)
+#OCC_CIP_CW$OCCCODE <- paste0(OCC_CIP_CW$pre, "-", OCC_CIP_CW$post)
+#OCC_CIP_CW <- OCC_CIP_CW[ -c(1,2,4,5,6,7)]  # removed unused columns
 
+#rename columns
+#rename(iris, petal_length = Petal.Length)  # Rename column headings
+OCC_CIP_CW1 <- rename(OCC_CIP_CW1, CIPCODE = CIP2020Code)
+OCC_CIP_CW1 <- rename(OCC_CIP_CW1, OCCCODE = SOC2018Code)
+OCC_CIP_CW1 <- rename(OCC_CIP_CW1, OCCNAME = SOC2018Title)
+OCC_CIP_CW <- rename(OCC_CIP_CW1, CIPNAME = CIP2020Title)
 # Merge CIP_Data file with the OCC <> CIP crosswalk file
 Backbone1 <- merge(x = OCC_Detail, y = OCC_CIP_CW, by="OCCCODE", all = TRUE)
 
@@ -559,23 +566,25 @@ Offerings9 <- rename(Offerings9, TotDegrees = CTOTALT.y, MatDegrees = CTOTALT.x.
 Offerings9$PC_Match <- Offerings9$MatDegrees / Offerings9$TotDegrees
 #Offerings10 <- merge(x = Offerings9, y = TotWage, by = "UNITID", all = TRUE)
 Offerings9$PerCapita <- Offerings9$Tot_Wages.y / Offerings9$MatDegrees
+Offerings9$OCCCODE <- as.character(Offerings9$OCCCODE)
+
 Offerings10 <- SchoolData[c(1,10,11)]
 Offerings10 <- merge (x = Offerings9, y = Offerings10, by = "UNITID", all = TRUE)
 
 #Individual school information
-write.csv(Offerings10, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Offerings.csv")
+write.csv(Offerings9, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Offerings.csv")#write.csv(Offerings10, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Offerings.csv")
 
 #Individual CIP information across all schools
 Offerings11 <- Offerings10[-c(1,6,39:44)]
 Offerings11 <- unique(Offerings11)
 
-write.csv(Offerings11, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/AllOfferings.csv")
+write.csv(Offerings9, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/AllOfferings.csv")
 
 #   ********** Text Data Quality ************************ ----
 # Check "Offerings.rds" file for the following:
 # make sure "Middle School" teachers exists and have data
 # make sure OCCCODE 29-12XX shows a variety of medical professions
-# Check also OOCODEs 11-2030, 25-2022, 29-1211
+# Check also OCCCODEs 11-2030, 25-2022, 29-1211
 
 # AltTitle.rds ********************* Create Alternate Titles file *********************************** ----
 AltTitle0 <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Alternate Titles.xlsx", skip = 1, col_names = c("OCCCODE", "OCCNAME", "AltName", "ShortName", "Source"))
