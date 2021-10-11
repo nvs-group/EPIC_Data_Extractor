@@ -63,6 +63,7 @@ library(write.xlsx)
 #write.xlsx2(x, file, sheetName = "Sheet1", col.names = TRUE, row.names = TRUE, append = FALSE) #faster on big files
 #data <- read.csv(unz("master.zip", "file1.csv"), header = TRUE, sep = ",") 
 #aggregate(x = testDF, by = list(by1, by2), FUN = "mean")
+#full_join(data1, data2, by = c("id", "spp"))
 
 # Load Occupation Description File and save as an RDS file ***************************** ----
 
@@ -355,7 +356,7 @@ OCCQint <- rename(OCCQint5, OCCCODE = OCC_CODE)  # rename occ_code to OCCCODE in
 OCC_Detail1 <- merge(x=OCCFcst, y=OCCQint, by="OCCCODE", all = TRUE)  #Merge OCC forecast & OCC salary data
 OCC_Detail2 <- OCC_Detail1 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
 OCC_Detail3 <- OCC_Detail2 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
-OCC_Detail4<- OCC_Detail3 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCC_Detail4 <- OCC_Detail3 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 # Set comment field to show salary data has been imputed
 OCC_Detail4$comment <- if_else(OCC_Detail4$A_PCT90 == "0" & OCC_Detail4$MedWage != "0", 
@@ -543,7 +544,7 @@ saveRDS(Lifestyle, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data
 # School offering analysis ----
 Offerings1 <- Backbone
 Offerings2 <- merge(x=Offerings1, y=SchoolData, by="UNITID", all = FALSE)
-Offerings3 <- Offerings2[ -c(7:48)]  # removed unused columns
+Offerings3 <- Offerings2[ -c(7:13, 16:48)]  # removed unused columns
 CIP_ListNew <- rename(CIP_List, CIPCODE = Codevalue)
 Offerings4 <- merge(x=Offerings3, y=CIP_ListNew, by="CIPCODE", all = FALSE)
 Offerings5 <- merge(x=Offerings4, y=OCC_Detail, by="OCCCODE", all = FALSE)
@@ -554,7 +555,7 @@ TotDegree <- aggregate(cbind(CTOTALT)~(UNITID), data=CIP_Data, FUN = sum)
 Offerings7 <- merge(x = Offerings6, y = TotDegree, by="UNITID", all = FALSE)
 Offerings7$Tot_Wages <- Offerings7$MedWage.y * Offerings7$CTOTALT.x
 Offerings8 <- filter(Offerings7, EntryMatch == 1 & Experience == "None")
-Offerings8 <- Offerings8[ c(1,2,4,5,6,7,37,38,39,40)]
+Offerings8 <- Offerings8[ c(1,2,4,5,6,7,37,38,39,40,42)]
 Offerings8 <- unique(Offerings8)
 TotWage <- aggregate(cbind(Tot_Wages)~(UNITID), data=Offerings8, FUN = sum)
 MatDegree <- aggregate(cbind(CTOTALT.x)~(UNITID), data=Offerings8, FUN = sum)
