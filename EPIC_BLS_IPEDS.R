@@ -96,6 +96,8 @@ CIP_List3 <- rename(CIP_List2, CIPNAME = valueLabel)
 #CIP_List1$valueLabel <- gsub(glob2rx("*."), "*", CIP_List1$valueLabel, ignore.case = TRUE) #replace " - USA" with ""
 #CIP_List1 <- filter(CIP_List1, valueLabel != "*")
 CIP_List <- unique(CIP_List3)
+CIPNull1 <- list("No Match", "No Match") 
+CIP_List <- rbind(CIP_List, CIPNull1)
 
 saveRDS(CIP_List, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP_List.rds")                                                      #Need to add TEXT for codes
 
@@ -132,7 +134,8 @@ CIP_Data2 <- CIP_Data1 %>% filter(AWLEVEL %in% DegreeCodes)
 
 #Add Years to dataSetName3 file by AWLEVEL
 CIP_Data3 <- merge(x=CIP_Data2, y=DegreeCrosswalk, by="AWLEVEL", all = FALSE)
-CIP_Data <- CIP_Data3[,c("CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]       #Designate columns to keep
+CIP_Data4 <- tibble::rowid_to_column(CIP_Data3, "ID")
+CIP_Data <- CIP_Data4[,c("ID","CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]       #Designate columns to keep
 
 #Find total degrees awarded by CIP
 
@@ -153,9 +156,15 @@ saveRDS(CIP_Data, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 
 
 # Schools.rds ******************************** CREATE SCHOOL FILE ********************************** ----
+#Load State names
+State_Names0 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/State_Names.xlsx", skip = 1,
+                              col_names = c("varNmae","STABBR","Frequency","Percent","valueOrder","State"))
+State_Names <- State_Names0[-c(1,3,4,5)]
+
 #Load data from latest "Preliminary" IPEDS files using "channelb"
 #When a new preliminary data file is released, all of the Access Tables year codes need to be updated below e.g. HD2019 >> HD2020, etc
 School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2019", as.is = TRUE ) 
+School1 <- merge(x = School1, y= State_Names, by = "STABBR", all = FALSE)
 School2 <- sqlQuery(channelb, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2019", as.is = TRUE ) 
 School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2019_AY", as.is = TRUE )
 School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2019", as.is = TRUE ) 
@@ -165,6 +174,7 @@ School7 <- sqlQuery(channelb, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2019", as.is
 
 #Load data from latest "Final" IPEDS files using "channela" 
 School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2018", as.is = TRUE ) 
+School1a <- merge(x = School1a, y= State_Names, by = "STABBR", all = FALSE)
 School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
 School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
 School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
@@ -193,6 +203,7 @@ School1$CITY <- ifelse(School1$CITY.x == "",School1$CITY.y,School1$CITY.x)
 School1$STABBR <- ifelse(School1$STABBR.x == "",School1$STABBR.y,School1$STABBR.x)
 School1$ZIP <- ifelse(School1$ZIP.x == "",School1$ZIP.y,School1$ZIP.x)
 School1$WEBADDR <- ifelse(School1$WEBADDR.x == "",School1$WEBADDR.y,School1$WEBADDR.x)
+School1$State <- ifelse(School1$State.x == "",School1$State.y,School1$State.x)
 
 School2$APPLCN <- ifelse(School2$APPLCN.x == 0,School2$APPLCN.y,School2$APPLCN.x)
 School2$ADMSSN <- ifelse(School2$ADMSSN.x == 0,School2$ADMSSN.y,School2$ADMSSN.x)
@@ -288,19 +299,20 @@ SchoolData$GTotCstInHi <- ifelse(SchoolData$TUITION6 == 0,0,SchoolData$TUITION6 
             SchoolData$CHG4AY3 + SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7 + SchoolData$FEE7 + 
             SchoolData$CHG4AY3 + SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
+SchoolData$ROOM_BOARD <- SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT
 
 SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","FTEUG","FTEGD",
                              "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
                              "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
                              "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
-                             "TotCstInLo","TotCstOutLo","GTotCstInHi","GTotCstOutHi","PCADMRT","PCFTETOT")]
+                             "TotCstInLo","TotCstOutLo","GTotCstInHi","GTotCstOutHi","ROOM_BOARD","State","PCADMRT","PCFTETOT")]
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
 
-saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
+saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools2.rds")
 
 
 # Occupations.rds ********************** CREATE OCCUPATIONS OCC_Detail FILE ************************* ----
