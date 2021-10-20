@@ -509,11 +509,16 @@ saveRDS(OCC_CIP_CW, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 
 # Continue to build backbone
 Backbone1 <- merge(x = Backbone1, y =DegreeCrosswalk, by="Entry_Code", all = TRUE)
-
 Backbone2 <- merge(x = CIP_Data, y = OCC_CIP_CW, by="CIPCODE", all = TRUE)  # Merge to Add Entry_Code field
 Backbone3 <- merge(x = Backbone1, y = Backbone2, by=c("CIPCODE","OCCCODE","AWLEVEL"), all = TRUE)  # Merge to Add Entry_Code field
+Backbone4 <- Backbone3[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE")]  # select fields to keep
 
-Backbone4 <- Backbone3[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE", "Entry_Code")]  # select fields to keep
+#build table of OCCCODES and Entry_Codes
+OCC_Entry_Codes <- OCC_Detail7[-c(1,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30)]
+
+# add entry codes to backbone
+Backbone5 <- merge(x = Backbone4, y = OCC_Entry_Codes, by = "OCCCODE", all = TRUE)  
+
 
 
 # Set AWLEVEL for Entry_Degree of "No Ed" or "HS" combined with CIPCODE of "No MATC" to AWLEVEL of "01" or "05".
@@ -522,9 +527,9 @@ Backbone4 <- Backbone3[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE",
 #                                     if_else(Backbone3$Entry_Code == "05","05",
 #                                             Backbone3$AWLEVEL)),Backbone3$AWLEVEL) 
 
-Backbone5 <- unique(Backbone4)
+Backbone5 <- unique(Backbone5)
 Backbone6 <- Backbone5[order(Backbone5$UNITID, Backbone5$CIPCODE, Backbone5$AWLEVEL, Backbone5$OCCCODE),
-                      c(1,2,3,4,5)] #sort columns
+                      c(2,3,4,5,1,6)] #sort columns
 #row.names(Backbone) <- 1:nrow(Backbone)   #renumber the rows sequentially
 Backbone7 <- Backbone6 %>% mutate_if(is.character, ~replace(., is.na(.), "No Match")) # change "na" to "0"
 Backbone8 <- Backbone7 %>% mutate_if(is.numeric, ~replace(., is.na(.),0)) # change "na" to "0"
