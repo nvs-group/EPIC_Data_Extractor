@@ -20,7 +20,7 @@ library(gmailr)
 library(shinyBS)
 library(readxl)
 library(pKSEA)
-library(write.xlsx)
+#library(write.xlsx)
 
 # Tools ********************************* Tools for use as needed ********************* ----
 #percentile rank
@@ -89,11 +89,13 @@ channela <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source D
 CIP_List0 <- sqlQuery(channelb, "SELECT varTitle, varName, Codevalue, valueLabel FROM valuesets19 WHERE Codevalue Like '__.____'", as.is = TRUE) 
 CIP_List0 <- filter(CIP_List0, varTitle == "CIPCODE")
 CIP_List1 <- CIP_List0[-c(1,2)]
+CIP_List2 <- rename(CIP_List1, CIPCODE = Codevalue)
+CIP_List3 <- rename(CIP_List2, CIPNAME = valueLabel)
 
 # remove cip names that end with a "." and save unique records only. Save the dataframe as an RDS file.
 #CIP_List1$valueLabel <- gsub(glob2rx("*."), "*", CIP_List1$valueLabel, ignore.case = TRUE) #replace " - USA" with ""
 #CIP_List1 <- filter(CIP_List1, valueLabel != "*")
-CIP_List <- unique(CIP_List1)
+CIP_List <- unique(CIP_List3)
 
 saveRDS(CIP_List, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP_List.rds")                                                      #Need to add TEXT for codes
 
@@ -511,7 +513,7 @@ Backbone1 <- merge(x = Backbone1, y =DegreeCrosswalk, by="Entry_Code", all = TRU
 Backbone2 <- merge(x = CIP_Data, y = OCC_CIP_CW, by="CIPCODE", all = TRUE)  # Merge to Add Entry_Code field
 Backbone3 <- merge(x = Backbone1, y = Backbone2, by=c("CIPCODE","OCCCODE","AWLEVEL"), all = TRUE)  # Merge to Add Entry_Code field
 
-Backbone4 <- Backbone3[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE")]  # select fields to keep
+Backbone4 <- Backbone3[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE", "Entry_Code")]  # select fields to keep
 
 
 # Set AWLEVEL for Entry_Degree of "No Ed" or "HS" combined with CIPCODE of "No MATC" to AWLEVEL of "01" or "05".
@@ -525,7 +527,8 @@ Backbone6 <- Backbone5[order(Backbone5$UNITID, Backbone5$CIPCODE, Backbone5$AWLE
                       c(1,2,3,4,5)] #sort columns
 #row.names(Backbone) <- 1:nrow(Backbone)   #renumber the rows sequentially
 Backbone7 <- Backbone6 %>% mutate_if(is.character, ~replace(., is.na(.), "No Match")) # change "na" to "0"
-Backbone <- Backbone7 %>% mutate_if(is.numeric, ~replace(., is.na(.),0)) # change "na" to "0"
+Backbone8 <- Backbone7 %>% mutate_if(is.numeric, ~replace(., is.na(.),0)) # change "na" to "0"
+Backbone9 <- tibble::rowid_to_column(Backbone8, "ID")
 
 # Change CTOTALT column from character to number data type
 #Backbone$CTOTALT = as.character(as.numeric(Backbone$CTOTALT)) #changes character column to numberic
@@ -594,14 +597,17 @@ AltTitle0$OCCCODE <- strtrim(AltTitle0$OCCCODE, 7)
 #Retain only OCCCODE and AltTitle columns
 AltTitle1 <- AltTitle0[ -c(2,4:5)]
 
-#rename column
-AltTitle2 <- rename(AltTitle1, OCCCODE2010 = OCCCODE)  # Rename column headings
+#save only 2 columns and rename columns
+OCCCODE4 <- OCCCODE3[ -c(1,2,5)]
+OCCCODE5 <- rename(OCCCODE4, OCCCODE = OCCCODE2018)  # Rename column headings
+OCCCODE6 <- rename(OCCCODE5, AltName = soc_2010_to_2018_crosswalk)
+
 #Map 2010 OCC codes to 2018 OCC codes
-AltTitle3 <- merge(x = AltTitle2, y = OCCCODE3, by="OCCCODE2010", all = TRUE)
-AltTitle<- AltTitle3[order(AltTitle3$AltName),c(4,2)] #sort by Alt Name
+AltTitle2 <- bind_rows(AltTitle1, OCCCODE6)
+AltTitle<- AltTitle2[order(AltTitle2$OCCCODE, AltTitle2$AltName),c(1,2)] #sort by Alt Name
 
 # save the file as an RDS file
-saveRDS(AltTitle, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/AltTitle.rds")
+saveRDS(AltTitle, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/alt_title_all.rds")
 
 
 #do not forget this, otherwise you lock access database from editing.
