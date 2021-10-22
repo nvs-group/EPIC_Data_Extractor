@@ -312,7 +312,7 @@ SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # c
 SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
 
-saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools2.rds")
+saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
 
 
 # Occupations.rds ********************** CREATE OCCUPATIONS OCC_Detail FILE ************************* ----
@@ -545,7 +545,7 @@ Backbone6 <- Backbone5[order(Backbone5$UNITID, Backbone5$CIPCODE, Backbone5$AWLE
 #row.names(Backbone) <- 1:nrow(Backbone)   #renumber the rows sequentially
 Backbone7 <- Backbone6 %>% mutate_if(is.character, ~replace(., is.na(.), "No Match")) # change "na" to "0"
 Backbone8 <- Backbone7 %>% mutate_if(is.numeric, ~replace(., is.na(.),0)) # change "na" to "0"
-Backbone9 <- tibble::rowid_to_column(Backbone8, "ID")
+Backbone <- tibble::rowid_to_column(Backbone8, "ID")
 
 # Change CTOTALT column from character to number data type
 #Backbone$CTOTALT = as.character(as.numeric(Backbone$CTOTALT)) #changes character column to numberic
