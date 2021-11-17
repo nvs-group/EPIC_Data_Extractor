@@ -29,6 +29,7 @@ library(pKSEA)
 #  x[i] <- perc.rank(vector, x[i])
 #}
 
+#anti_join(table1, table2, by=c("state", "county"))
 #unused <- as.integer(c(1:55))
 #rename(iris, petal_length = Petal.Length)  # Rename column headings
 #UnitCIP <- distinct(dataSetName2, .keep_all = FALSE)
@@ -470,7 +471,7 @@ for(i in 1:NumRow) {
 
 
 # Create Occupation "No Match" record
-OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"N/A","N/A","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"N/A","N/A","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 OCC_Detail <- rbind(OCC_Detail7, OCCNull1, drop = FALSE)
 
 #Replace "NaN" elements with 0
@@ -488,7 +489,7 @@ saveRDS(OCC_Detail, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 # Backbone.rds ******************* CREATE BACKBONE FILE ************************************ ----
 
 #Read CIP OCC crosswalk file, keep character format for codes, includes "no match" information
-OCC_CIP_CW1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP2020_SOC2018_Crosswalk.xlsx",
+OCC_CIP_CW0 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP2020_SOC2018_Crosswalk.xlsx",
                          sheet = "CIP-SOC", col_names = TRUE)
 
 #Insert a dash "-" into the OCCCODE 
@@ -499,12 +500,12 @@ OCC_CIP_CW1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Da
 
 #rename columns
 #rename(iris, petal_length = Petal.Length)  # Rename column headings
-OCC_CIP_CW1 <- rename(OCC_CIP_CW1, CIPCODE = CIP2020Code)
+OCC_CIP_CW1 <- rename(OCC_CIP_CW0, CIPCODE = CIP2020Code)
 OCC_CIP_CW1 <- rename(OCC_CIP_CW1, OCCCODE = SOC2018Code)
 OCC_CIP_CW1 <- rename(OCC_CIP_CW1, OCCNAME = SOC2018Title)
 OCC_CIP_CW <- rename(OCC_CIP_CW1, CIPNAME = CIP2020Title)
 # Merge CIP_Data file with the OCC <> CIP crosswalk file
-Backbone1 <- merge(x = OCC_Detail, y = OCC_CIP_CW, by="OCCCODE", all = TRUE)
+Backbone0 <- merge(x = OCC_Detail, y = OCC_CIP_CW, by="OCCCODE", all = TRUE)
 
 #Create MedWage by CIP-OCC Percentile Rank Combination ----
 OCC_CIP_CW <- Backbone1[,c("CIPCODE", "OCCCODE", "MedWage")]
@@ -520,9 +521,9 @@ saveRDS(OCC_CIP_CW, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 
 
 # Continue to build backbone
-Backbone1 <- merge(x = Backbone1, y =DegreeCrosswalk, by="Entry_Code", all = TRUE)
+Backbone1 <- merge(x = Backbone0, y =DegreeCrosswalk, by="Entry_Code", all = TRUE)
 Backbone2 <- merge(x = CIP_Data, y = OCC_CIP_CW, by="CIPCODE", all = TRUE)  # Merge to Add Entry_Code field
-Backbone3 <- merge(x = Backbone1, y = Backbone2, by=c("CIPCODE","OCCCODE","AWLEVEL"), all = TRUE)  # Merge to Add Entry_Code field
+Backbone3 <- merge(x = Backbone1, y = Backbone2, by=c("CIPCODE","OCCCODE","AWLEVEL"), all.y = TRUE)  # Merge to Add Entry_Code field
 Backbone4 <- Backbone3[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE")]  # select fields to keep
 
 #build table of OCCCODES and Entry_Codes
@@ -545,7 +546,12 @@ Backbone6 <- Backbone5[order(Backbone5$UNITID, Backbone5$CIPCODE, Backbone5$AWLE
 #row.names(Backbone) <- 1:nrow(Backbone)   #renumber the rows sequentially
 Backbone7 <- Backbone6 %>% mutate_if(is.character, ~replace(., is.na(.), "No Match")) # change "na" to "0"
 Backbone8 <- Backbone7 %>% mutate_if(is.numeric, ~replace(., is.na(.),0)) # change "na" to "0"
-Backbone <- tibble::rowid_to_column(Backbone8, "ID")
+
+# Remove new CIP codes from the backbone data tables and "No Match" AWLevel items
+Backbone9 <- merge(x = Backbone8, y = CIP_List, by="CIPCODE", all.y = TRUE)
+Backbone10 <- filter(Backbone9, UNITID != "No Match")
+
+Backbone <- tibble::rowid_to_column(Backbone10, "ID")                  #Create Index ID for the backbone
 
 # Change CTOTALT column from character to number data type
 #Backbone$CTOTALT = as.character(as.numeric(Backbone$CTOTALT)) #changes character column to numberic
@@ -565,8 +571,8 @@ saveRDS(Lifestyle, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data
 Offerings1 <- Backbone
 Offerings2 <- merge(x=Offerings1, y=SchoolData, by="UNITID", all = FALSE)
 Offerings3 <- Offerings2[ -c(7:13, 16:48)]  # removed unused columns
-CIP_ListNew <- rename(CIP_List, CIPCODE = Codevalue)
-Offerings4 <- merge(x=Offerings3, y=CIP_ListNew, by="CIPCODE", all = FALSE)
+#CIP_ListNew <- rename(CIP_List, CIPCODE = Codevalue)
+Offerings4 <- merge(x=Offerings3, y=CIP_List, by="CIPCODE", all = FALSE)
 Offerings5 <- merge(x=Offerings4, y=OCC_Detail, by="OCCCODE", all = FALSE)
 Offerings5$EntryMatch <- if_else(Offerings5$Entry_Code == Offerings5$AWLEVEL,1,0)
 TotMedWage <- aggregate(cbind(MedWage)~(CIPCODE), data=Offerings5, FUN = mean)
@@ -575,7 +581,7 @@ TotDegree <- aggregate(cbind(CTOTALT)~(UNITID), data=CIP_Data, FUN = sum)
 Offerings7 <- merge(x = Offerings6, y = TotDegree, by="UNITID", all = FALSE)
 Offerings7$Tot_Wages <- Offerings7$MedWage.y * Offerings7$CTOTALT.x
 Offerings8 <- filter(Offerings7, EntryMatch == 1 & Experience == "None")
-Offerings8 <- Offerings8[ c(1,2,4,5,6,7,37,38,39,40,42)]
+Offerings8 <- Offerings8[ c(1,2,3,4,5,6,37,38,39,40,42,46)]
 Offerings8 <- unique(Offerings8)
 TotWage <- aggregate(cbind(Tot_Wages)~(UNITID), data=Offerings8, FUN = sum)
 MatDegree <- aggregate(cbind(CTOTALT.x)~(UNITID), data=Offerings8, FUN = sum)
@@ -638,3 +644,11 @@ SchoolDataDetail <- SchoolDataDetail %>% full_join(OCC_CIP_CW, by = "CIPCODE")
 SchoolDataDetail <- SchoolDataDetail[ -c(41,42,43,45,46)]
 SchoolDataDetail <- unique(SchoolDataDetail)
 write.csv(SchoolDataDetail, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/schooldata.csv")
+
+# Data diagnostics to reconcile data mismatches between backbone and occupations, schools, and CIP .RDS files ----
+Test_Backbone_Occupations_OCCs <- anti_join(Backbone, OCC_Detail, by=c("OCCCODE"))
+Test_Occupations_Backbone_OCCs <- anti_join(OCC_Detail, Backbone, by=c("OCCCODE"))
+Test_Backbone_Schools_UNITIDs <- anti_join(Backbone, SchoolData, by=c("UNITID"))
+Test_Schools_Backbone_UNITIDs <- anti_join(SchoolData, Backbone, by=c("UNITID"))
+Test_Backbone_CIP_Data_CIPCODEs <- anti_join(Backbone, CIP_Data, by=c("CIPCODE"))
+Test_CIP_Data_Backbone_UNITIDs <- anti_join(CIP_Data, Backbone, by=c("CIPCODE"))
