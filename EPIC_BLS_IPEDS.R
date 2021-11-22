@@ -302,7 +302,7 @@ SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7
             SchoolData$CHG4AY3 + SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 SchoolData$ROOM_BOARD <- SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT
 
-SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","FTEUG","FTEGD",
+SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","ADMRT","FTEUG","FTEGD","FTETOT",
                              "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
                              "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
                              "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
@@ -310,7 +310,7 @@ SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","A
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
@@ -508,7 +508,7 @@ OCC_CIP_CW <- rename(OCC_CIP_CW1, CIPNAME = CIP2020Title)
 Backbone0 <- merge(x = OCC_Detail, y = OCC_CIP_CW, by="OCCCODE", all = TRUE)
 
 #Create MedWage by CIP-OCC Percentile Rank Combination ----
-OCC_CIP_CW <- Backbone1[,c("CIPCODE", "OCCCODE", "MedWage")]
+OCC_CIP_CW <- Backbone0[,c("CIPCODE", "OCCCODE", "MedWage")]
 OCC_CIP_CW <- OCC_CIP_CW %>% drop_na()   #drop "NA" records
 OCC_CIP_CW <- OCC_CIP_CW[order(-OCC_CIP_CW$MedWage),]
 OCC_CIP_CW$PC_CIP_MedWage <- OCC_CIP_CW$MedWage                #initialize new variable
@@ -581,7 +581,7 @@ TotDegree <- aggregate(cbind(CTOTALT)~(UNITID), data=CIP_Data, FUN = sum)
 Offerings7 <- merge(x = Offerings6, y = TotDegree, by="UNITID", all = FALSE)
 Offerings7$Tot_Wages <- Offerings7$MedWage.y * Offerings7$CTOTALT.x
 Offerings8 <- filter(Offerings7, EntryMatch == 1 & Experience == "None")
-Offerings8 <- Offerings8[ c(1,2,3,4,5,6,37,38,39,40,42,46)]
+Offerings8 <- Offerings8[ c(1,2,3,4,5,6,37,38,39,40,42,46,47)]
 Offerings8 <- unique(Offerings8)
 TotWage <- aggregate(cbind(Tot_Wages)~(UNITID), data=Offerings8, FUN = sum)
 MatDegree <- aggregate(cbind(CTOTALT.x)~(UNITID), data=Offerings8, FUN = sum)
