@@ -40,6 +40,7 @@ library(pKSEA)
 #cipcode_all <- cipcode_all %>% filter(CIPCODE %notin% (unused))
 #schools_columns <- readRDS("c_n_school.rds")
 #filter(starwars, hair_color == "none" & eye_color == "black")
+#filter(starwars, hair_color == "none" | eye_color == "black")
 #wages <- filter(wages, data_type_code.y == "12" & seasonal.y == "S")
 #CIP_Data <- CIP_Data3[,c("CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]
 #School5 <- School5 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
@@ -81,14 +82,14 @@ saveRDS(OCCDescriptions, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Maste
 #Need latest Microsoft Access Database Engine 2010 Redistributable 64bit in order to use the channel function
 #The IPEDS data can be found at https://nces.ed.gov/ipeds/use-the-data/download-access-database
 #channela is the most recent "Final" IPEDS date. channelb is the most recent "Preliminary" IPEDS data
-channelb <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201920.accdb")
-channela <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201819.accdb")
+channelb <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS202021.accdb")
+channela <- odbcConnectAccess2007("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/IPEDS201920.accdb")
 
 
 # CIP List ***************Create full list of CIP codes and names *********** ----
 #pull full CIP code list from the IPEDS data
-CIP_List0 <- sqlQuery(channelb, "SELECT varTitle, varName, Codevalue, valueLabel FROM valuesets19 WHERE Codevalue Like '__.____'", as.is = TRUE) 
-CIP_List0 <- filter(CIP_List0, varTitle == "CIPCODE")
+CIP_List0 <- sqlQuery(channelb, "SELECT varTitle, varName, Codevalue, valueLabel FROM valuesets20 WHERE Codevalue Like '__.____'", as.is = TRUE) 
+CIP_List0 <- filter(CIP_List0, varTitle == "CIP Code -  2020 Classification")
 CIP_List1 <- CIP_List0[-c(1,2)]
 CIP_List2 <- rename(CIP_List1, CIPCODE = Codevalue)
 CIP_List3 <- rename(CIP_List2, CIPNAME = valueLabel)
@@ -105,11 +106,11 @@ saveRDS(CIP_List, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/
 
 # CIP Data ************************* CREATE CIP DATA FILE **************************************** ----
 # import data table c2019_a (which includes completion information by institution) from IPEDS access database
-CIP_Data0 <- sqlQuery(channelb, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT, MAJORNUM FROM C2019_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
+CIP_Data0 <- sqlQuery(channelb, "SELECT CIPCODE, UNITID, AWLEVEL, CTOTALT, MAJORNUM FROM C2020_A WHERE CIPCODE Like '__.____'", as.is = TRUE ) 
 
 #combine total awards to include double majors as separate awards
-Major1 <- CIP_Data0 %>% filter(MAJORNUM ==1)  #select degrees awarded as first or primary major
-Major2 <- CIP_Data0 %>% filter(MAJORNUM ==2)  #select degrees awarded as second or dual major
+Major1 <- CIP_Data0 %>% filter(MAJORNUM == 1)  #select degrees awarded as first or primary major
+Major2 <- CIP_Data0 %>% filter(MAJORNUM == 2)  #select degrees awarded as second or dual major
 MajorT <- merge(Major1, Major2, by = c("CIPCODE", "UNITID", "AWLEVEL"), all = TRUE)
 MajorT <- MajorT %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 MajorT$CTOTALT <- MajorT$CTOTALT.x + MajorT$CTOTALT.y
@@ -125,8 +126,10 @@ CIP_Data1$AWLEVEL <- as.character(CIP_Data1$AWLEVEL)    # Change AWLEVEL from in
 #CIP_Data1 <- rbind(CIP_Data1, AWLADD)
 
 #Read degree crosswalk table between school degress and occupational entry degrees
-DegreeCrosswalk <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/DegreeCrosswalk.xlsx")
-
+DegreeCrosswalk <- read_excel("C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/DegreeCrosswalk.xlsx") #----
+DegreeCrosswalk1 <- DegreeCrosswalk[ -c(1,4,5,6,7)]
+DegreeCrosswalk1 <- unique(DegreeCrosswalk1)   #Unique Entry degree codes and names
+  
 #create updated list of valid school degree codes
 DegreeCodes <- DegreeCrosswalk$AWLEVEL
 
@@ -134,7 +137,7 @@ DegreeCodes <- DegreeCrosswalk$AWLEVEL
 CIP_Data2 <- CIP_Data1 %>% filter(AWLEVEL %in% DegreeCodes)
 
 #Add Years to dataSetName3 file by AWLEVEL
-CIP_Data3 <- merge(x=CIP_Data2, y=DegreeCrosswalk, by="AWLEVEL", all = FALSE)
+CIP_Data3 <- merge(x=CIP_Data2, y=DegreeCrosswalk, by="AWLEVEL", all.x = TRUE)
 CIP_Data4 <- tibble::rowid_to_column(CIP_Data3, "ID")
 CIP_Data <- CIP_Data4[,c("ID","CIPCODE", "UNITID", "AWLEVEL", "CTOTALT", "Years")]       #Designate columns to keep
 
@@ -163,25 +166,25 @@ State_Names0 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source D
 State_Names <- State_Names0[-c(1,3,4,5)]
 
 #Load data from latest "Preliminary" IPEDS files using "channelb"
-#When a new preliminary data file is released, all of the Access Tables year codes need to be updated below e.g. HD2019 >> HD2020, etc
-School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2019", as.is = TRUE ) 
+#When a new preliminary data file is released, all of the Access Tables year codes need to be updated below e.g. HD2020 >> HD2021, etc
+School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2020", as.is = TRUE ) 
 School1 <- merge(x = School1, y= State_Names, by = "STABBR", all = FALSE)
-School2 <- sqlQuery(channelb, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2019", as.is = TRUE ) 
-School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2019_AY", as.is = TRUE )
-School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2019", as.is = TRUE ) 
-School5 <- sqlQuery(channelb, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_19", as.is = TRUE ) 
-School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1819_P1", as.is = TRUE )
-School7 <- sqlQuery(channelb, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2019", as.is = TRUE )
+School2 <- sqlQuery(channelb, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2020", as.is = TRUE ) 
+School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2020_AY", as.is = TRUE )
+School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2020", as.is = TRUE ) 
+School5 <- sqlQuery(channelb, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_20", as.is = TRUE ) 
+School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1920_P1", as.is = TRUE )
+School7 <- sqlQuery(channelb, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2020", as.is = TRUE )
 
 #Load data from latest "Final" IPEDS files using "channela" 
-School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2018", as.is = TRUE ) 
+School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2019", as.is = TRUE ) 
 School1a <- merge(x = School1a, y= State_Names, by = "STABBR", all = FALSE)
-School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2018", as.is = TRUE ) 
-School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2018_AY", as.is = TRUE )
-School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2018", as.is = TRUE ) 
-School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_18", as.is = TRUE ) 
-School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1718_P1", as.is = TRUE )
-School7a <- sqlQuery(channela, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2018", as.is = TRUE )
+School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2019", as.is = TRUE ) 
+School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2019_AY", as.is = TRUE )
+School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2019", as.is = TRUE ) 
+School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_19", as.is = TRUE ) 
+School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1819_P1", as.is = TRUE )
+School7a <- sqlQuery(channela, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2019", as.is = TRUE )
 
 #Merge earlier "Final" data with later "Preliminary" then use final data if no preliminary data exists
 School1 <- merge(x=School1, y=School1a, by="UNITID", all = TRUE)
@@ -320,8 +323,8 @@ saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 #combine occupation data into a single file, name and set numeric columns, and save as an RDS file
 #Load OCC entry data table and keep only three columns to get Entry_Degree by OCCCODE
 #combine occupation data into a single file, name and set numeric columns, and save as an RDS file
-OCC_Detail7 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/occupation.xlsx", sheet = "Table 1.7", skip = 3,
-                       col_names = c("OCCNAME", "OCCCODE2018", "OCCTYPE", "Emply2019", "Emply2029", 
+OCCFcst1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/occupation.xlsx", sheet = "Table 1.7", skip = 3,
+                       col_names = c("OCCNAME", "OCCCODE", "OCCTYPE", "Emply2020", "Emply2030", 
                                     "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                                     "Entry_Degree", "Experience", "OJT"),
                        col_types = c("text", "text", "text", "numeric", "numeric", "numeric", 
@@ -330,21 +333,21 @@ OCC_Detail7 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Da
 
 #The following file only has detailed occupational codes. Summary codes are not included in forcast or quintile data
 #The source file requires manual selection of "duplicate" records in the table
-OCCCODE1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/soc_2010_to_2018_crosswalk.xlsx", 
-                       skip = 8) #This file will need to be replaced once the forecast info is available by the 2018 SOC codes
-OCCCODE2 <- rename(OCCCODE1, "OCCCODE2010" = "2010 SOC Code")  # rename "2010 SOC Code" to "OCCCODE2010" 
-OCCCODE2 <- rename(OCCCODE2, "OCCCODE2018" = "2018 SOC Code")  # rename "2018 SOC Code" to "OCCCODE" 
+#OCCCODE1 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/soc_2010_to_2018_crosswalk.xlsx", 
+#                       skip = 8) #This file will need to be replaced once the forecast info is available by the 2018 SOC codes
+#OCCCODE2 <- rename(OCCCODE1, "OCCCODE2010" = "2010 SOC Code")  # rename "2010 SOC Code" to "OCCCODE2010" 
+#OCCCODE2 <- rename(OCCCODE2, "OCCCODE2018" = "2018 SOC Code")  # rename "2018 SOC Code" to "OCCCODE" 
 
-OCCCODE3 <- filter(OCCCODE2, Duplicate == "No")  #delete manually selected "duplicate" records
+#OCCCODE3 <- filter(OCCCODE2, Duplicate == "No")  #delete manually selected "duplicate" records
 
 #convert SOC 2010 codes to SOC 2018 codes and update occ forcast with updated OCC Codes
-OCCFcst2 <- merge(OCCCODE3, OCC_Detail7, by = "OCCCODE2018", all = TRUE)
-OCCFcst2 <- OCCFcst2 %>% filter(OCCTYPE %in% "Line item") #delete summary occupations, etc
-OCCFcst3 <- OCCFcst2[ -c(2,3,4,5)]    # delete unused columns including 2010 SOC codes and  names
-OCCFcst3 <- rename(OCCFcst3, "OCCCODE" = "OCCCODE2018")  # rename "OCCCODE2018" to "OCCCODE" in order to merge with OCCFcst
-OCCFcst4 <- merge(x = OCCFcst3, y = DegreeCrosswalk, by="Entry_Degree", all = TRUE)  # add "Entry_Code" to dataframe
-OCCFcst4$Entry_Code <- as.character(OCCFcst4$Entry_Code)  #Change Entry_Code from Integer to Character
-OCCFcst4 <- OCCFcst4[ -c(17,19:22)]    # delete unused columns 
+#OCCFcst2 <- merge(OCCCODE3, OCCFcst1, by = "OCCCODE2010", all = FALSE)      #all.x includes new 2018 OCC codes
+OCCFcst2 <- OCCFcst1 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCCFcst2 <- OCCFcst2 %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
+OCCFcst3 <- filter(OCCFcst2, OCCTYPE == "Line item") #delete summary & blank occupations, etc
+OCCFcst4 <- merge(x = OCCFcst3, y = DegreeCrosswalk1, by = "Entry_Degree", all.x = TRUE)  # add "Entry_Code" to dataframe
+#OCCFcst4$Entry_Code <- as.character(OCCFcst4$Entry_Code)  #Change Entry_Code from Integer to Character
+OCCFcst4 <- OCCFcst4[ -c(18,19)]    # delete unused columns 
 
 OCCFcst <- unique(OCCFcst4)                 # delete duplicates
 
@@ -368,7 +371,7 @@ OCCQint5 <- OCCQint4[ -c(1,2,3,4,5,6,7,8,13,14,15,16,19)]  # removed unused colu
 OCCQint <- rename(OCCQint5, OCCCODE = OCC_CODE)  # rename occ_code to OCCCODE in order to merge with OCCFcst
 
 # Merge forecast data using 2018 codes and salary quintile data
-OCC_Detail1 <- merge(x=OCCFcst, y=OCCQint, by="OCCCODE", all = TRUE)  #Merge OCC forecast & OCC salary data
+OCC_Detail1 <- merge(x=OCCFcst, y=OCCQint, by="OCCCODE", all.x = TRUE)  #Merge OCC forecast & OCC salary data  #all.x eliminates old OCC Codes in OCCQuint
 OCC_Detail2 <- OCC_Detail1 %>% mutate_if(is.double, ~replace(., is.na(.), 0)) # change "na" to "0"
 OCC_Detail3 <- OCC_Detail2 %>% mutate_if(is.integer, ~replace(., is.na(.), 0)) # change "na" to "0"
 OCC_Detail4 <- OCC_Detail3 %>% mutate_if(is.character, ~replace(., is.na(.), 0)) # change "na" to "0"
@@ -436,7 +439,7 @@ OCC_Detail6$MedOccF <- (OCC_Detail6$X82p/OCC_Detail6$MedLate)^(1/40)
 OCC_Detail6$HiOccF <- (OCC_Detail6$X90p/OCC_Detail6$HiLate)^(1/40)
 
 # set column headings for the OCC_Detail file
-OCC_Detail6 <- OCC_Detail6[,c ("OCCNAME", "OCCCODE", "Emply2019", "Emply2029", 
+OCC_Detail6 <- OCC_Detail6[,c ("OCCNAME", "OCCCODE", "Emply2020", "Emply2030", 
                               "EmplyChg", "EmplyPC", "SelfEmpl", "Openings", "MedWage", 
                               "Entry_Code", "Entry_Degree", "Experience", 
                               "OJT", "comment", "X10p", "X17p", "X25p", "X50p", "X75p", "X82p", "X90p",
@@ -471,7 +474,7 @@ for(i in 1:NumRow) {
 
 
 # Create Occupation "No Match" record
-OCCNull1 <- list("No Match", "No Match",0,0,0,0,0,0,0,"N/A","N/A","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+OCCNull1 <- list("No Match", "99-9999",0,0,0,0,0,0,0,"N/A","N/A","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 OCC_Detail <- rbind(OCC_Detail7, OCCNull1, drop = FALSE)
 
 #Replace "NaN" elements with 0
@@ -492,20 +495,19 @@ saveRDS(OCC_Detail, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 OCC_CIP_CW0 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/CIP2020_SOC2018_Crosswalk.xlsx",
                          sheet = "CIP-SOC", col_names = TRUE)
 
-#Insert a dash "-" into the OCCCODE 
-#OCC_CIP_CW$pre <- substr(OCC_CIP_CW$OCCCODE_OLD, 1, 2)
-#OCC_CIP_CW$post <- substr(OCC_CIP_CW$OCCCODE_OLD, 3, 6)
-#OCC_CIP_CW$OCCCODE <- paste0(OCC_CIP_CW$pre, "-", OCC_CIP_CW$post)
-#OCC_CIP_CW <- OCC_CIP_CW[ -c(1,2,4,5,6,7)]  # removed unused columns
-
 #rename columns
 #rename(iris, petal_length = Petal.Length)  # Rename column headings
 OCC_CIP_CW1 <- rename(OCC_CIP_CW0, CIPCODE = CIP2020Code)
 OCC_CIP_CW1 <- rename(OCC_CIP_CW1, OCCCODE = SOC2018Code)
 OCC_CIP_CW1 <- rename(OCC_CIP_CW1, OCCNAME = SOC2018Title)
 OCC_CIP_CW <- rename(OCC_CIP_CW1, CIPNAME = CIP2020Title)
-# Merge CIP_Data file with the OCC <> CIP crosswalk file
-Backbone0 <- merge(x = OCC_Detail, y = OCC_CIP_CW, by="OCCCODE", all = TRUE)
+
+#Add CIP codes for curriculum with no matching OCC codes
+OCC_CIP_CW_ALL <- merge(x = CIP_List, y = OCC_CIP_CW1, by="CIPCODE", all = TRUE)
+
+
+# Merge OCC_Data file with the OCC <> CIP crosswalk file
+Backbone0 <- merge(x = OCC_Detail, y = OCC_CIP_CW_ALL, by="OCCCODE", all = TRUE)   #
 
 #Create MedWage by CIP-OCC Percentile Rank Combination ----
 OCC_CIP_CW <- Backbone0[,c("CIPCODE", "OCCCODE", "MedWage")]
@@ -521,13 +523,13 @@ saveRDS(OCC_CIP_CW, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Dat
 
 
 # Continue to build backbone
-Backbone1 <- merge(x = Backbone0, y =DegreeCrosswalk, by="Entry_Code", all = TRUE)
-Backbone2 <- merge(x = CIP_Data, y = OCC_CIP_CW, by="CIPCODE", all = TRUE)  # Merge to Add Entry_Code field
-Backbone3 <- merge(x = Backbone1, y = Backbone2, by=c("CIPCODE","OCCCODE","AWLEVEL"), all.y = TRUE)  # Merge to Add Entry_Code field
-Backbone4 <- Backbone3[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE")]  # select fields to keep
+Backbone1 <- merge(x = Backbone0, y =DegreeCrosswalk1, by="Entry_Code", all = TRUE)
+Backbone2 <- merge(x = CIP_Data, y = OCC_CIP_CW, by="CIPCODE", all = FALSE)  # Merge to Add Entry_Code field
+#Backbone3 <- merge(x = Backbone1, y = Backbone2, by=c("CIPCODE","OCCCODE","ENTRYCODE"), all = FALSE)  # Merge to Add Entry_Code field
+Backbone4 <- Backbone2[,c ("UNITID", "CIPCODE", "AWLEVEL", "CTOTALT", "OCCCODE")]  # select fields to keep
 
 #build table of OCCCODES and Entry_Codes
-OCC_Entry_Codes <- OCC_Detail7[-c(1,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30)]
+OCC_Entry_Codes <- OCC_Detail7[-c(1,3:9,11:30)]
 
 # add entry codes to backbone
 Backbone5 <- merge(x = Backbone4, y = OCC_Entry_Codes, by = "OCCCODE", all = TRUE)  
@@ -548,10 +550,10 @@ Backbone7 <- Backbone6 %>% mutate_if(is.character, ~replace(., is.na(.), "No Mat
 Backbone8 <- Backbone7 %>% mutate_if(is.numeric, ~replace(., is.na(.),0)) # change "na" to "0"
 
 # Remove new CIP codes from the backbone data tables and "No Match" AWLevel items
-Backbone9 <- merge(x = Backbone8, y = CIP_List, by="CIPCODE", all.y = TRUE)
-Backbone10 <- filter(Backbone9, UNITID != "No Match")
+#Backbone9 <- merge(x = Backbone8, y = CIP_List, by="CIPCODE", all.y = TRUE)     #Remove New CIP codes from backbone that aren't in CIP_DATA ----
+#Backbone10 <- filter(Backbone9, UNITID != "No Match")     #Remove "No Match" items in backbone which includes Occupations no requiring college ed ----
 
-Backbone <- tibble::rowid_to_column(Backbone10, "ID")                  #Create Index ID for the backbone
+Backbone <- tibble::rowid_to_column(Backbone8, "ID")                  #Create Index ID for the backbone
 
 # Change CTOTALT column from character to number data type
 #Backbone$CTOTALT = as.character(as.numeric(Backbone$CTOTALT)) #changes character column to numberic
@@ -646,9 +648,13 @@ SchoolDataDetail <- unique(SchoolDataDetail)
 write.csv(SchoolDataDetail, "c:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/schooldata.csv")
 
 # Data diagnostics to reconcile data mismatches between backbone and occupations, schools, and CIP .RDS files ----
-Test_Backbone_Occupations_OCCs <- anti_join(Backbone, OCC_Detail, by=c("OCCCODE"))
-Test_Occupations_Backbone_OCCs <- anti_join(OCC_Detail, Backbone, by=c("OCCCODE"))
-Test_Backbone_Schools_UNITIDs <- anti_join(Backbone, SchoolData, by=c("UNITID"))
-Test_Schools_Backbone_UNITIDs <- anti_join(SchoolData, Backbone, by=c("UNITID"))
-Test_Backbone_CIP_Data_CIPCODEs <- anti_join(Backbone, CIP_Data, by=c("CIPCODE"))
-Test_CIP_Data_Backbone_UNITIDs <- anti_join(CIP_Data, Backbone, by=c("CIPCODE"))
+Test_Backbone_Occupations_OCCs <- anti_join(Backbone, OCC_Detail, by=c("OCCCODE"))   #Records in Backbone but not in OCC_Detail
+Test_Occupations_Backbone_OCCs <- anti_join(OCC_Detail, Backbone, by=c("OCCCODE"))   #
+Test_Backbone_Schools_UNITIDs <- anti_join(Backbone, SchoolData, by=c("UNITID"))     #
+Test_Schools_Backbone_UNITIDs <- anti_join(SchoolData, Backbone, by=c("UNITID"))     #
+Test_Backbone_CIP_Data_CIPCODEs <- anti_join(Backbone, CIP_Data, by=c("CIPCODE"))    #
+Test_CIP_Data_Backbone_UNITIDs <- anti_join(CIP_DataF, Backbone, by=c("CIPCODE"))     #
+
+# Delete records that don't appear in both tables from the tests above
+dtA=dtA[!(dtB$company %in% dtA$company)]
+CIP_DataF <- CIP_Data[!(CIP_Data$CIPCODE %in% Test_CIP_Data_Backbone_UNITIDs$CIPCODE)]
