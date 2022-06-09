@@ -174,7 +174,7 @@ School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TU
 School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2020", as.is = TRUE ) 
 School5 <- sqlQuery(channelb, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_20", as.is = TRUE ) 
 School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1920_P1", as.is = TRUE )
-School7 <- sqlQuery(channelb, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2020", as.is = TRUE )
+School7 <- sqlQuery(channelb, "SELECT UNITID, EFTOTAL FROM EF2020", as.is = TRUE )
 
 #Load data from latest "Final" IPEDS files using "channela" 
 School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2019", as.is = TRUE ) 
@@ -184,7 +184,7 @@ School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, T
 School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2019", as.is = TRUE ) 
 School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_19", as.is = TRUE ) 
 School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1819_P1", as.is = TRUE )
-School7a <- sqlQuery(channela, "SELECT UNITID, FTEUG, FTEGD FROM EFIA2019", as.is = TRUE )
+School7a <- sqlQuery(channela, "SELECT UNITID, EFTOTAL FROM EF2019", as.is = TRUE )
 
 #Merge earlier "Final" data with later "Preliminary" then use final data if no preliminary data exists
 School1 <- merge(x=School1, y=School1a, by="UNITID", all = TRUE)
@@ -241,19 +241,19 @@ School5$L4GR200 <- ifelse(School5$L4GR200.x == 0,School5$L4GR200.y,School5$L4GR2
 School6$IGRNT_P <- ifelse(School6$IGRNT_P.x == 0,School6$IGRNT_P.y,School6$IGRNT_P.x)
 School6$IGRNT_A <- ifelse(School6$IGRNT_A.x == 0,School6$IGRNT_A.y,School6$IGRNT_A.x)
 
-School7$FTEUG <- ifelse(School7$FTEUG.x == 0,School7$FTEUG.y,School7$FTEUG.x)
-School7$FTEGD <- ifelse(School7$FTEGD.x == 0,School7$FTEGD.y,School7$FTEGD.x)
+School7$EFTOTAL <- ifelse(School7$EFTOTAL.x == 0,School7$EFTOTAL.y,School7$EFTOTAL.x)
+#School7$FTEGD <- ifelse(School7$FTEGD.x == 0,School7$FTEGD.y,School7$FTEGD.x)
 
 
 #Total Enrollment Percentile Rankings ----
 
-School7$FTETOT <- School7$FTEUG + School7$FTEGD
-School7 <- filter(School7, FTETOT > 0)
-School7 <- School7[order(-School7$FTETOT),]
-School7$PCFTETOT <- School7$FTETOT    #Initialize new variable
+#School7$FTETOT <- School7$EFTOTAL + School7$FTEGD     #Exclude Grad #'s which are already included in EFTOTAL
+School7 <- filter(School7, EFTOTAL > 0)
+School7 <- School7[order(-School7$EFTOTAL),]
+School7$PCFTETOT <- School7$EFTOTAL    #Initialize new variable
 NumRow <- nrow(School7)
 for(i in 1:NumRow) {
-  School7$PCFTETOT[i] <- perc.rank(School7$FTETOT, School7$FTETOT[i])
+  School7$PCFTETOT[i] <- perc.rank(School7$EFTOTAL, School7$EFTOTAL[i])
 }
 
 
@@ -267,7 +267,7 @@ for(i in 1:NumRow) {
 }
 
 
-#write_csv(School7b, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/PCFTEUG.csv")
+#write_csv(School7b, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/PCEFTOTAL.csv")
 
 # Create Graduation Rate Factor for each school
 
@@ -305,7 +305,7 @@ SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7
             SchoolData$CHG4AY3 + SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 SchoolData$ROOM_BOARD <- SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT
 
-SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","ADMRT","FTEUG","FTEGD","FTETOT",
+SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","ADMRT","EFTOTAL","FTETOT",
                              "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
                              "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
                              "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
@@ -656,5 +656,5 @@ Test_Backbone_CIP_Data_CIPCODEs <- anti_join(Backbone, CIP_Data, by=c("CIPCODE")
 Test_CIP_Data_Backbone_UNITIDs <- anti_join(CIP_DataF, Backbone, by=c("CIPCODE"))     #
 
 # Delete records that don't appear in both tables from the tests above
-dtA=dtA[!(dtB$company %in% dtA$company)]
-CIP_DataF <- CIP_Data[!(CIP_Data$CIPCODE %in% Test_CIP_Data_Backbone_UNITIDs$CIPCODE)]
+#dtA=dtA[!(dtB$company %in% dtA$company)]
+#CIP_DataF <- CIP_Data[!(CIP_Data$CIPCODE %in% Test_CIP_Data_Backbone_UNITIDs$CIPCODE)]
