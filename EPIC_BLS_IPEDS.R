@@ -174,7 +174,8 @@ School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TU
 School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2020", as.is = TRUE ) 
 School5 <- sqlQuery(channelb, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_20", as.is = TRUE ) 
 School6 <- sqlQuery(channelb, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1920_P1", as.is = TRUE )
-School7 <- sqlQuery(channelb, "SELECT UNITID, EFTOTAL FROM EF2020", as.is = TRUE )
+School7 <- sqlQuery(channelb, "SELECT UNITID, EFTOTAL, EFLEVEL FROM EF2020", as.is = TRUE )
+School7 <- filter(School7, EFLEVEL == 10)
 
 #Load data from latest "Final" IPEDS files using "channela" 
 School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2019", as.is = TRUE ) 
@@ -184,7 +185,8 @@ School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, T
 School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2019", as.is = TRUE ) 
 School5a <- sqlQuery(channela, "SELECT UNITID, BAGR100, BAGR150, BAGR200, L4GR100, L4GR150, L4GR200 FROM GR200_19", as.is = TRUE ) 
 School6a <- sqlQuery(channela, "SELECT UNITID, IGRNT_P, IGRNT_A FROM SFA1819_P1", as.is = TRUE )
-School7a <- sqlQuery(channela, "SELECT UNITID, EFTOTAL FROM EF2019", as.is = TRUE )
+School7a <- sqlQuery(channela, "SELECT UNITID, EFTOTAL, EFLEVEL FROM EF2019", as.is = TRUE )
+School7a <- filter(School7a, EFLEVEL == 10)
 
 #Merge earlier "Final" data with later "Preliminary" then use final data if no preliminary data exists
 School1 <- merge(x=School1, y=School1a, by="UNITID", all = TRUE)
@@ -250,10 +252,10 @@ School7$EFTOTAL <- ifelse(School7$EFTOTAL.x == 0,School7$EFTOTAL.y,School7$EFTOT
 #School7$FTETOT <- School7$EFTOTAL + School7$FTEGD     #Exclude Grad #'s which are already included in EFTOTAL
 School7 <- filter(School7, EFTOTAL > 0)
 School7 <- School7[order(-School7$EFTOTAL),]
-School7$PCFTETOT <- School7$EFTOTAL    #Initialize new variable
+School7$PCEFTOTAL <- School7$EFTOTAL    #Initialize new variable
 NumRow <- nrow(School7)
 for(i in 1:NumRow) {
-  School7$PCFTETOT[i] <- perc.rank(School7$EFTOTAL, School7$EFTOTAL[i])
+  School7$PCEFTOTAL[i] <- perc.rank(School7$EFTOTAL, School7$EFTOTAL[i])
 }
 
 
@@ -305,11 +307,11 @@ SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7
             SchoolData$CHG4AY3 + SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT)
 SchoolData$ROOM_BOARD <- SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT
 
-SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","ADMRT","EFTOTAL","FTETOT",
+SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","ADMRT","EFTOTAL",
                              "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
                              "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
                              "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
-                             "TotCstInLo","TotCstOutLo","GTotCstInHi","GTotCstOutHi","ROOM_BOARD","State","PCADMRT","PCFTETOT")]
+                             "TotCstInLo","TotCstOutLo","GTotCstInHi","GTotCstOutHi","ROOM_BOARD","State","PCADMRT","PCEFTOTAL")]
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
@@ -583,7 +585,7 @@ TotDegree <- aggregate(cbind(CTOTALT)~(UNITID), data=CIP_Data, FUN = sum)
 Offerings7 <- merge(x = Offerings6, y = TotDegree, by="UNITID", all = FALSE)
 Offerings7$Tot_Wages <- Offerings7$MedWage.y * Offerings7$CTOTALT.x
 Offerings8 <- filter(Offerings7, EntryMatch == 1 & Experience == "None")
-Offerings8 <- Offerings8[ c(1,2,3,4,5,6,37,38,39,40,42,46,47)]
+Offerings8 <- Offerings8[ c(1,2,3,4,5,6,37,38,39,40,42,46)]
 Offerings8 <- unique(Offerings8)
 TotWage <- aggregate(cbind(Tot_Wages)~(UNITID), data=Offerings8, FUN = sum)
 MatDegree <- aggregate(cbind(CTOTALT.x)~(UNITID), data=Offerings8, FUN = sum)
@@ -653,8 +655,9 @@ Test_Occupations_Backbone_OCCs <- anti_join(OCC_Detail, Backbone, by=c("OCCCODE"
 Test_Backbone_Schools_UNITIDs <- anti_join(Backbone, SchoolData, by=c("UNITID"))     #
 Test_Schools_Backbone_UNITIDs <- anti_join(SchoolData, Backbone, by=c("UNITID"))     #
 Test_Backbone_CIP_Data_CIPCODEs <- anti_join(Backbone, CIP_Data, by=c("CIPCODE"))    #
-Test_CIP_Data_Backbone_UNITIDs <- anti_join(CIP_DataF, Backbone, by=c("CIPCODE"))     #
+Test_CIP_Data_Backbone_UNITIDs <- anti_join(CIP_Data, Backbone, by=c("CIPCODE"))     #
 
 # Delete records that don't appear in both tables from the tests above
 #dtA=dtA[!(dtB$company %in% dtA$company)]
 #CIP_DataF <- CIP_Data[!(CIP_Data$CIPCODE %in% Test_CIP_Data_Backbone_UNITIDs$CIPCODE)]
+
