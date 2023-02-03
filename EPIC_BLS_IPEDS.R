@@ -28,7 +28,7 @@ library(pKSEA)
   # i-th element of `u1` squared into `i`-th position of `usq`
 #  x[i] <- perc.rank(vector, x[i])
 #}
-
+#
 #anti_join(table1, table2, by=c("state", "county"))
 #unused <- as.integer(c(1:55))
 #rename(iris, petal_length = Petal.Length)  # Rename column headings
@@ -165,10 +165,15 @@ State_Names0 <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source D
                               col_names = c("varNmae","STABBR","Frequency","Percent","valueOrder","State"))
 State_Names <- State_Names0[-c(1,3,4,5)]
 
+#load locale text information
+locale_text <- read_excel(path = "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/locale_text.xlsx",
+                           col_names = c("LOCALE","Location"))
+
 #Load data from latest "Preliminary" IPEDS files using "channelb"
 #When a new preliminary data file is released, all of the Access Tables year codes need to be updated below e.g. HD2020 >> HD2021, etc
-School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2020", as.is = TRUE ) 
+School1 <- sqlQuery(channelb, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR, LOCALE FROM HD2020", as.is = TRUE ) 
 School1 <- merge(x = School1, y= State_Names, by = "STABBR", all = FALSE)
+School1 <- merge(x = School1, y= locale_text, by = "LOCALE", all = FALSE)
 School2 <- sqlQuery(channelb, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2020", as.is = TRUE ) 
 School3 <- sqlQuery(channelb, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2020_AY", as.is = TRUE )
 School4 <- sqlQuery(channelb, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2020", as.is = TRUE ) 
@@ -178,8 +183,9 @@ School7 <- sqlQuery(channelb, "SELECT UNITID, EFTOTAL, EFLEVEL FROM EF2020", as.
 School7 <- filter(School7, EFLEVEL == 10)
 
 #Load data from latest "Final" IPEDS files using "channela" 
-School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR FROM HD2019", as.is = TRUE ) 
+School1a <- sqlQuery(channela, "SELECT UNITID, INSTNM, CITY, STABBR, ZIP, WEBADDR, LOCALE FROM HD2019", as.is = TRUE ) 
 School1a <- merge(x = School1a, y= State_Names, by = "STABBR", all = FALSE)
+School1a <- merge(x = School1a, y= locale_text, by = "LOCALE", all = FALSE)
 School2a <- sqlQuery(channela, "SELECT UNITID, APPLCN, ADMSSN, ENRLT FROM ADM2019", as.is = TRUE ) 
 School3a <- sqlQuery(channela, "SELECT UNITID, TUITION2, TUITION3, FEE2, FEE3, TUITION6, TUITION7, FEE6, FEE7, CHG4AY3 FROM IC2019_AY", as.is = TRUE )
 School4a <- sqlQuery(channela, "SELECT UNITID, ROOMAMT, BOARDAMT, RMBRDAMT FROM IC2019", as.is = TRUE ) 
@@ -210,6 +216,7 @@ School1$STABBR <- ifelse(School1$STABBR.x == "",School1$STABBR.y,School1$STABBR.
 School1$ZIP <- ifelse(School1$ZIP.x == "",School1$ZIP.y,School1$ZIP.x)
 School1$WEBADDR <- ifelse(School1$WEBADDR.x == "",School1$WEBADDR.y,School1$WEBADDR.x)
 School1$State <- ifelse(School1$State.x == "",School1$State.y,School1$State.x)
+School1$Location <- ifelse(School1$Location.x == "",School1$Location.y,School1$Location.x)
 
 School2$APPLCN <- ifelse(School2$APPLCN.x == 0,School2$APPLCN.y,School2$APPLCN.x)
 School2$ADMSSN <- ifelse(School2$ADMSSN.x == 0,School2$ADMSSN.y,School2$ADMSSN.x)
@@ -308,14 +315,14 @@ SchoolData$GTotCstOutHi <- ifelse(SchoolData$TUITION7 == 0,0,SchoolData$TUITION7
 SchoolData$ROOM_BOARD <- SchoolData$ROOMAMT + SchoolData$BOARDAMT + SchoolData$RMBRDAMT
 
 SchoolData <- SchoolData[ c("UNITID","INSTNM","CITY","STABBR","ZIP","WEBADDR","APPLCN","ADMSSN","ENRLT","ADMRT","EFTOTAL",
-                             "TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
+                            "Location","TUITION2","TUITION3","TUITION6","TUITION7","FEE2","FEE3","FEE6","FEE7","CHG4AY3",
                              "ROOMAMT","BOARDAMT","RMBRDAMT","BAGR100","BAGR150","BAGR200","L4GR100","L4GR150","L4GR200",
                              "pc75","pc100","pc150","pc200","Factor","IGRNT_P","IGRNT_A","TotCstInHi","TotCstOutHi",
                              "TotCstInLo","TotCstOutLo","GTotCstInHi","GTotCstOutHi","ROOM_BOARD","State","PCADMRT","PCEFTOTAL")]
 SchoolData <- SchoolData %>% mutate_if(is.numeric, ~replace(., is.na(.), 0)) # change "na" to "0"
 
 #Add "No Match" record for schools
-SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
+SchoolNull1 <- list("No Match", "No Match","","","",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) 
 SchoolData <- rbind(SchoolData, SchoolNull1)
 
 saveRDS(SchoolData, "C:/Users/lccha/OneDrive/NVS/NVS_EPIC/Source Data/Master Data/Schools.rds")
